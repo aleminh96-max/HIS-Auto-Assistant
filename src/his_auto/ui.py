@@ -28,7 +28,7 @@ class AssistantWindow(QMainWindow):
         self.resize(1120, 820)
         base = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "HISAutoAssistant"
         self.store = store or Store(base / "assistant.sqlite3")
-        self.adapter = SimulatorAdapter()
+        self.adapter = SimulatorAdapter(self.store)
         self.workflow = Workflow(self.adapter, self.store)
         self.signature = SignatureManager(self.adapter, self.store)
         self.printer = PrintManager(self.adapter, self.store)

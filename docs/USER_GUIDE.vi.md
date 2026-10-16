@@ -21,7 +21,7 @@ Nhập ba đối tượng JSON với cùng mã TEST và số lượng. Ví dụ 
 
 ## Lỗi và khôi phục
 
-Workflow lưu `PENDING` trước thao tác. Nếu lỗi, quy trình mới chỉ bỏ qua bước khi backend còn chứng minh đúng nội dung đã lưu. Nếu backend mất trạng thái hoặc kết quả mâu thuẫn, cần kiểm tra thủ công. Không xóa nhật ký để ép chạy lại. Simulator hiện lưu bản ghi trong RAM; đóng ứng dụng sẽ mất bản ghi, trong khi SQLite giữ dấu vết. Với cùng bệnh án/giờ cũ, có thể bị chặn khi mở lại; dùng thời điểm TEST mới để mở phiên thử mới. Bản tiếp theo cần backend simulator bền vững và màn hình đối soát khôi phục.
+Workflow lưu `PENDING` trước thao tác. Nếu lỗi, quy trình mới chỉ bỏ qua bước khi backend còn chứng minh đúng nội dung đã lưu. Nếu backend mất trạng thái hoặc kết quả mâu thuẫn, cần kiểm tra thủ công. Không xóa nhật ký để ép chạy lại. Simulator mở từ ứng dụng lưu dấu vân tay bản ghi, chữ ký giả và mã lệnh in giả trong SQLite để đối soát qua lần khởi động; không lưu nguyên nội dung hồ sơ. Dùng thời điểm TEST mới khi thử một bộ tờ mới. Simulator EXE riêng là phiên độc lập trong RAM. Chưa có màn hình đối soát khôi phục đầy đủ.
 
 ## Triển khai bệnh viện
 

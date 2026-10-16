@@ -1,6 +1,6 @@
 from enum import StrEnum
 import time
-from .domain import SafetyError
+from .domain import SafetyError, MAIN_SCREEN
 
 
 class State(StrEnum):
@@ -34,6 +34,8 @@ class Workflow:
         self.error = ""
         self.approved_hash = None
         self.check_context()
+        if self.adapter.context().screen != MAIN_SCREEN:
+            raise SafetyError("Chỉ khởi chạy tại màn hình BA Nội trú - Ngoại Trú.")
         self.state = State.WAITING_FOR_REVIEW
 
     def check_context(self, permission="write"):

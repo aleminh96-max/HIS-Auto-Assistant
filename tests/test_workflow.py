@@ -72,3 +72,16 @@ def test_changed_dossier_rejected(adapter,store,dossier):
     w.tick()
     assert w.state == State.FAILED
     assert not adapter.calls
+
+
+def test_simulator_reconciles_after_restart(store,dossier):
+    from his_auto.simulator import SimulatorAdapter
+    a = SimulatorAdapter(store)
+    w = approved(a,store,dossier)
+    for _ in range(5): w.tick()
+    assert w.state == State.COMPLETED
+    restored = SimulatorAdapter(store)
+    w2 = approved(restored,store,dossier)
+    for _ in range(5): w2.tick()
+    assert w2.state == State.COMPLETED
+    assert len(restored.calls) == 5

@@ -34,7 +34,7 @@ python -m pytest -v --junitxml=test-results.xml
 
 ## Giới hạn cần đọc
 
-Workflow hiện gọi **backend simulator trong bộ nhớ**, không điều khiển eHospital. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
+Workflow hiện gọi **backend simulator** (lưu dấu vân tay trạng thái vào SQLite), không điều khiển eHospital. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
 
 ## Dữ liệu
 

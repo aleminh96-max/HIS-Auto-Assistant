@@ -51,3 +51,27 @@ def test_print_missing_printer_unsigned_or_duplicate(adapter,store,document):
     assert p.print(document,c,[c.printer],approved=True).startswith("SIM-")
     with pytest.raises(SafetyError): p.print(document,c,[c.printer],approved=True)
     assert adapter.calls.count("print") == 1
+
+
+@pytest.mark.parametrize("result",["FAILED","CANCELLED"])
+def test_signature_failure_or_cancel_does_not_repeat(adapter,store,document,result):
+    s = SignatureManager(adapter,store)
+    adapter.signature_result = result
+    s.approve(document)
+    with pytest.raises(SafetyError): s.sign(document)
+    assert store.operation("sign:"+document.key) == result
+    s.approve(document)
+    with pytest.raises(SafetyError): s.sign(document)
+    assert adapter.calls.count("sign") == 1
+
+
+def test_print_queue_error_stays_pending(adapter,store,document):
+    s = SignatureManager(adapter,store)
+    s.approve(document)
+    s.sign(document)
+    p = PrintManager(adapter,store)
+    adapter.fail_print = True
+    with pytest.raises(SafetyError): p.print(document,PrintConfig("TEST"),["TEST"],approved=True)
+    adapter.fail_print = False
+    with pytest.raises(SafetyError): p.print(document,PrintConfig("TEST"),["TEST"],approved=True)
+    assert adapter.calls.count("print") == 1

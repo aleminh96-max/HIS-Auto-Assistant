@@ -33,7 +33,7 @@ class SimulatorWindow(QMainWindow):
         self.tabs.addTab(self.meds,"Bảng thuốc (cuộn ngang)")
         layout.addWidget(QLabel("Gây lỗi mô phỏng để kiểm tra dừng an toàn:"))
         self.fault = QComboBox()
-        self.fault.addItems(["Bình thường", "Đổi bệnh nhân", "Đổi đợt điều trị", "Sai khoa", "HIS treo", "Không có quyền ký", "Kết quả ký không rõ", "Lỗi lưu tờ 2"])
+        self.fault.addItems(["Bình thường", "Đổi bệnh nhân", "Đổi đợt điều trị", "Sai khoa", "HIS treo", "Không có quyền ký", "Kết quả ký không rõ", "Lỗi lưu tờ 2", "Ký thất bại", "Hủy ký", "Lỗi hàng đợi in"])
         self.fault.currentIndexChanged.connect(self.inject_fault)
         layout.addWidget(self.fault)
         self.timer = QTimer(self)
@@ -52,6 +52,8 @@ class SimulatorWindow(QMainWindow):
         self.adapter.patient = p
         self.adapter.unknown_signature = index == 6
         self.adapter.fail_step = "sheet2" if index == 7 else None
+        self.adapter.signature_result = "FAILED" if index == 8 else "CANCELLED" if index == 9 else "SIGNED"
+        self.adapter.fail_print = index == 10
         self.refresh()
 
     def refresh(self):
