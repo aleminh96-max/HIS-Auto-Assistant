@@ -5,7 +5,7 @@
 
 Probe chỉ đọc loại control, nhãn tĩnh nằm trong allowlist và rect tương đối. Nó không đọc title cửa sổ, nội dung Edit/Text/DataItem, ảnh, DB, mật khẩu hay chứng thư. Báo cáo đã tạo cục bộ ngoài repo tại `%LOCALAPPDATA%\HISAutoAssistant\ehospital-uia-safe.json` và `winforms-metadata-only.json`.
 
-Thông tin phiên bản tệp thực thi ghi nhà cung cấp FPT Information System GMC, Product Version 4.0.0.0, File Version 4.0.1.0, build .NET 4.0 ngày 27-04-2016. Chưa có trong repository hoặc tài liệu công khai đã rà soát API contract, endpoint hay cơ chế xác thực dành riêng cho bản cài đặt này; nhắc tới FHIR trong tài liệu sản phẩm FPT không chứng minh endpoint đó được triển khai tại bệnh viện.
+Thông tin phiên bản tệp thực thi ghi nhà cung cấp FPT Information System GMC, Product Version 4.0.0.0, File Version 4.0.1.0, build .NET 4.0 ngày 27-04-2016. FPT công bố FPT.eHospital 2.0+ có thể tích hợp qua nền tảng RESTful API và trang công nghệ FPT mô tả eHospital 2.0 dùng .NET/SQL Server ([FPT.eHospital 2.0+](https://fpt-is.com/ehospital-2-0/), [FPT Healthcare](https://fpt-is.com/en/healthcare/)). Đây là hướng kết nối khả thi cần ưu tiên xác minh với FPT/CNTT; metadata `FileVersion 4.0.1.0` không xác nhận edition/module/API nào đang triển khai hoặc bật ở bệnh viện. Chưa có API contract, endpoint hay cơ chế xác thực dành riêng cho bản cài đặt này.
 
 ## Chuẩn bị máy Windows được phép khảo sát
 1. Sử dụng một tài khoản và máy có quyền khảo sát kỹ thuật được bệnh viện phê duyệt.
@@ -21,7 +21,8 @@ python -m his_auto.live_probe
 
 ## Roadmap để tích hợp thật
 - CNTT/FPT cung cấp môi trường HIS **kiểm thử** do bệnh viện quản lý, dùng dữ liệu giả; phiên sản xuất hiện tại không dùng để điều hướng hoặc kiểm tra thao tác.
-- Nếu có API chính thức cho đúng bản cài đặt, cung cấp đặc tả, endpoint test, cơ chế xác thực và quyền tối thiểu; nếu không, tiếp tục đánh giá UIA chỉ trong môi trường test được phê duyệt.
+- Ưu tiên xác minh API RESTful chính thức của đúng edition eHospital đang chạy; đề nghị FPT/CNTT cung cấp OpenAPI/đặc tả, module được cấp phép, endpoint test, OAuth/certificate/scopes, operations đọc ngữ cảnh và ghi nghiệp vụ, audit/idempotency, cùng dữ liệu giả.
+- Nếu FPT xác nhận không có API cho bản cài đặt, tiếp tục ánh xạ UIA chỉ trên môi trường test được phê duyệt. Không dùng SQL trực tiếp hoặc trích mật khẩu từ cấu hình.
 - Chạy công cụ trên các màn hình `BA Nội trú - Ngoại Trú`, `F5`, `F7`, `Phiếu lĩnh dược`, `Crystal Reports`; lưu báo cáo theo từng màn hình khi không có dữ liệu nhạy cảm.
 - Dựa vào kết quả, xây bộ `LiveAdapter` với bộ ánh xạ giao diện được xác minh. Không nhấp theo tọa độ đoán mò.
 - Kiểm tra bệnh nhân/đợt/khoa qua phương pháp được cấp phép; nếu không xác minh được thì dừng.
