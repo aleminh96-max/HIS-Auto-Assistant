@@ -32,11 +32,11 @@ python -m pytest -v --junitxml=test-results.xml
 - Dịch vụ tùy chọn; đối chiếu y lệnh, tổng hợp và phiếu lĩnh, chặn số lượng không khớp trước khi chuẩn bị hồ sơ.
 - Workflow có duyệt nội dung, tạm dừng, tiếp tục, Esc dừng khẩn cấp; kiểm tra ngữ cảnh trước/sau từng bước; lưu dấu vết trước thao tác và không tự thử lại kết quả chưa rõ.
 - Duyệt chữ ký gắn đúng tài liệu/nội dung; chỉ gửi ký một lần; mô phỏng lệnh in và chống gửi trùng.
-- Khảo sát eHospital bằng UIA/Win32 ở chế độ chỉ đọc: chỉ đếm loại control, nhãn tĩnh trong allowlist và hình học tương đối; không đọc giá trị trường hoặc tiêu đề cửa sổ. Probe đã nhận diện được gợi ý màn hình bệnh án trên máy khảo sát.
+- Khảo sát eHospital bằng UIA/Win32 ở chế độ chỉ đọc: chỉ đếm loại control, nhãn tĩnh trong allowlist và hình học tương đối; không đọc giá trị trường hoặc tiêu đề cửa sổ. Probe ngày 2026-10-19 nhận diện một cửa sổ sản xuất với gợi ý `inpatient_record`, nhưng không xác minh khoa, bệnh nhân, đợt điều trị hoặc quyền.
 
 ## Giới hạn cần đọc
 
-Workflow hiện gọi **backend simulator** (lưu dấu vân tay trạng thái vào SQLite); LiveAdapter mới chỉ khảo sát metadata, chưa điều khiển nghiệp vụ eHospital. Probe đọc thấy 2 tiến trình, 4 cửa sổ Win32 và 2 cửa sổ UIA cùng kích thước; nhãn giao diện chưa phân biệt được màn hình/phiên hiện tại. Vì vậy chưa chọn được duy nhất phiên HIS để tự động hóa. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
+Workflow hiện gọi **backend simulator** (lưu dấu vân tay trạng thái vào SQLite); LiveAdapter mới chỉ khảo sát metadata, chưa điều khiển nghiệp vụ eHospital. Probe mới nhất thấy một tiến trình và một cửa sổ; người vận hành xác nhận phiên hiện tại là HIS sản xuất. Không điều hướng hay thao tác nghiệp vụ trên phiên này. Màn hình gợi ý `inpatient_record` nhưng không chứng minh khoa, bệnh nhân, đợt điều trị hoặc quyền. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
 
 ## Dữ liệu
 

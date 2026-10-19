@@ -2,15 +2,16 @@
 
 **Nguồn:** 12 ảnh do người sử dụng cung cấp để xác định vùng giao diện. Ảnh gốc chứa dữ liệu người bệnh và **không được lưu vào repository công khai, CI artifacts hoặc log**.
 
-**Trạng thái:** SCREENSHOT_REVIEWED; metadata UIA/Win32 chỉ đọc đã chạy trên eHospital 4.0.1.0. Đã thấy các nhãn tĩnh `Chẩn đoán`, `Tổng kết Bệnh án`, `Mua ngoài`, `Cấp thuốc`, `Sửa`, `Lưu`, `Xác nhận ký số`, `Xem ký số`. Các nhãn tab bệnh án và radio toa thuốc cùng xuất hiện trong cây control, nên screen classifier trả về không xác định. Chưa xác minh AutomationId/Name của trường nghiệp vụ, chưa thử nhập hoặc lưu trên HIS.
+**Trạng thái:** SCREENSHOT_REVIEWED; metadata UIA/Win32 chỉ đọc đã chạy trên eHospital 4.0.1.0. Lần probe 2026-10-19 nhận diện 1 cửa sổ 1936×1048 với gợi ý `inpatient_record` từ nhãn tĩnh allowlist. Người vận hành xác nhận đây là HIS sản xuất. Nhãn giao diện không xác minh khoa, bệnh nhân, đợt điều trị hay quyền. Chưa xác minh AutomationId/Name của trường nghiệp vụ, chưa điều hướng, nhập hoặc lưu trên HIS.
 
 ## Kết quả khảo sát metadata-only trên máy
 
 - Product Version 4.0.0.0 / File Version 4.0.1.0.
-- Hai tiến trình eHospital, bốn top-level WinForms windows: 311×102, 1936×1048, 476×369 và 1936×1048. Hai cửa sổ chính cùng kích thước và nhiều phiên đồng thời nên chưa chọn được phiên HIS duy nhất.
-- Probe UIA thấy hai cửa sổ 1936×1048. Mỗi cây control có nhãn tab bệnh án cùng radio toa thuốc; classifier không đưa ra screen hint. Không chứng minh được khoa, bệnh nhân, đợt điều trị hoặc quyền truy cập.
+- Probe UIA mới nhất thấy một tiến trình và một cửa sổ 1936×1048; classifier đưa ra gợi ý `inpatient_record`. Kết quả này không chứng minh được khoa, bệnh nhân, đợt điều trị hoặc quyền truy cập.
+- Baseline Win32 trước đó ghi nhận hai tiến trình và bốn cửa sổ (311×102, 1936×1048, 476×369, 1936×1048); chưa chạy lại Win32 probe cùng lần kiểm tra mới.
 - Win32 đếm lớp control và rect tương đối; lớp `WindowsForms10.EDIT` có số lượng 1, 139, 3 và 37 theo bốn cửa sổ. Đây chưa phải ánh xạ trường; không có giá trị edit nào được đọc.
 - Báo cáo JSON chỉ lưu tại `%LOCALAPPDATA%\HISAutoAssistant`, không nằm trong repo. Không chứa title, ảnh, nội dung bệnh nhân hoặc giá trị trường.
+- File metadata ghi nhà cung cấp FPT Information System GMC, Product Version 4.0.0.0 và File Version 4.0.1.0. Tài liệu API/endpoint riêng cho bản cài đặt này chưa được cung cấp.
 
 ## Điều kiện chung trước mọi thao tác có tác động
 

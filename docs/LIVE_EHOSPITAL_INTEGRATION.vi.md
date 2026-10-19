@@ -1,9 +1,11 @@
 # Bước đầu kết nối eHospital thật – khảo sát chỉ đọc
 
 ## Trạng thái
-Đã chạy probe chỉ-đọc trên máy Windows có eHospital 4.0.1.0. Kết quả lượt mới nhất: 2 tiến trình, 4 cửa sổ WinForms (311×102, 1936×1048, 476×369, 1936×1048); UIA thấy 2 cửa sổ chính cùng kích thước. Nhãn tab bệnh án và radio toa thuốc cùng xuất hiện trong cây control nên screen classifier từ chối phân loại. Có nhiều phiên/cửa sổ, chưa xác minh duy nhất phiên để tự động hóa. Chưa điều hướng, nhập, lưu, ký, in hoặc đọc dữ liệu bệnh nhân. Chức năng ghi HIS, ký và lĩnh dược thật tiếp tục bị khóa.
+Đã chạy probe chỉ-đọc lại ngày 19-10-2026 trên eHospital 4.0.1.0. Lần này phát hiện 1 tiến trình và 1 cửa sổ UIA kích thước 1936×1048; classifier nhận diện gợi ý `inpatient_record` từ nhãn giao diện tĩnh trong allowlist. Tài khoản vận hành xác nhận phiên đang mở là HIS sản xuất. Gợi ý màn hình không xác minh khoa, bệnh nhân, đợt điều trị hay quyền truy cập. Chưa điều hướng, nhập, lưu, ký, in hoặc đọc dữ liệu hồ sơ. Chức năng ghi HIS, ký và lĩnh dược thật tiếp tục bị khóa.
 
 Probe chỉ đọc loại control, nhãn tĩnh nằm trong allowlist và rect tương đối. Nó không đọc title cửa sổ, nội dung Edit/Text/DataItem, ảnh, DB, mật khẩu hay chứng thư. Báo cáo đã tạo cục bộ ngoài repo tại `%LOCALAPPDATA%\HISAutoAssistant\ehospital-uia-safe.json` và `winforms-metadata-only.json`.
+
+Thông tin phiên bản tệp thực thi ghi nhà cung cấp FPT Information System GMC, Product Version 4.0.0.0, File Version 4.0.1.0, build .NET 4.0 ngày 27-04-2016. Chưa có trong repository hoặc tài liệu công khai đã rà soát API contract, endpoint hay cơ chế xác thực dành riêng cho bản cài đặt này; nhắc tới FHIR trong tài liệu sản phẩm FPT không chứng minh endpoint đó được triển khai tại bệnh viện.
 
 ## Chuẩn bị máy Windows được phép khảo sát
 1. Sử dụng một tài khoản và máy có quyền khảo sát kỹ thuật được bệnh viện phê duyệt.
@@ -18,7 +20,8 @@ python -m his_auto.live_probe
 5. Bộ phận CNTT kiểm tra báo cáo trước khi chia sẻ. Nếu công cụ không nhận diện được nhãn, chưa đủ cơ sở kết luận có thể tự động hóa an toàn.
 
 ## Roadmap để tích hợp thật
-- CNTT xác định một tiến trình/cửa sổ HIS duy nhất và cung cấp môi trường HIS **kiểm thử** do bệnh viện quản lý, dùng dữ liệu giả.
+- CNTT/FPT cung cấp môi trường HIS **kiểm thử** do bệnh viện quản lý, dùng dữ liệu giả; phiên sản xuất hiện tại không dùng để điều hướng hoặc kiểm tra thao tác.
+- Nếu có API chính thức cho đúng bản cài đặt, cung cấp đặc tả, endpoint test, cơ chế xác thực và quyền tối thiểu; nếu không, tiếp tục đánh giá UIA chỉ trong môi trường test được phê duyệt.
 - Chạy công cụ trên các màn hình `BA Nội trú - Ngoại Trú`, `F5`, `F7`, `Phiếu lĩnh dược`, `Crystal Reports`; lưu báo cáo theo từng màn hình khi không có dữ liệu nhạy cảm.
 - Dựa vào kết quả, xây bộ `LiveAdapter` với bộ ánh xạ giao diện được xác minh. Không nhấp theo tọa độ đoán mò.
 - Kiểm tra bệnh nhân/đợt/khoa qua phương pháp được cấp phép; nếu không xác minh được thì dừng.

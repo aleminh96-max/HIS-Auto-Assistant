@@ -15,9 +15,10 @@ Bản 0.1 là bản thử mô phỏng. Kết quả tự động cụ thể trong
 | Máy in không tồn tại, chưa ký, chưa duyệt, lệnh in trùng | pytest documents (mô phỏng) |
 | GUI nhập → chuẩn bị → duyệt → ba tờ; sửa sau duyệt | pytest-qt offscreen trên Windows |
 | Nhận diện ảnh duy nhất / mơ hồ, tọa độ tương đối | pytest với ảnh tổng hợp |
-| Probe UIA metadata eHospital | PASS READ-ONLY — 2 cửa sổ 1936×1048; nhãn tab bệnh án và radio toa thuốc xuất hiện cùng cây control, phân loại trả về `null` cho cả hai. Không đọc title hoặc giá trị trường. |
-| Probe Win32 metadata eHospital | PASS READ-ONLY — 2 tiến trình, 4 cửa sổ; kích thước 311×102, 1936×1048, 476×369, 1936×1048; lớp control và rect tương đối lưu ngoài repository. |
-| eHospital trên máy khảo sát | Product 4.0.0.0 / File 4.0.1.0. Có nhiều tiến trình/cửa sổ và không xác định duy nhất màn hình/phiên hoạt động. |
+| Probe UIA metadata eHospital | PASS READ-ONLY — lần chạy 2026-10-19 thấy 1 tiến trình, 1 cửa sổ 1936×1048, classifier gợi ý `inpatient_record` từ nhãn tĩnh allowlist. Không đọc title hoặc giá trị trường; không xác minh khoa, bệnh nhân, đợt điều trị hay quyền. |
+| Probe Win32 metadata eHospital | PASS READ-ONLY — baseline trước đó: 2 tiến trình, 4 cửa sổ (311×102, 1936×1048, 476×369, 1936×1048); chưa chạy lại Win32 probe trong lần kiểm tra 2026-10-19. |
+| eHospital trên máy khảo sát | FPT Information System GMC; Product 4.0.0.0 / File 4.0.1.0, build .NET 4.0 ngày 27-04-2016. Người vận hành xác nhận phiên đang mở là sản xuất; không có thao tác nghiệp vụ. |
+| API/SDK chính thức cho bản cài đặt này | NOT VERIFIED — chưa có API contract, endpoint test hoặc cơ chế xác thực từ bệnh viện/FPT. Tài liệu FPT nói về FHIR ở các giải pháp liên thông khác không xác nhận API khả dụng trong cài đặt này. |
 | Ánh xạ ID/Name UIA của trường nghiệp vụ | NOT VERIFIED — probe không đọc giá trị hoặc nhãn ngoài allowlist; chưa đủ căn cứ để điền trường. |
 | Điều hướng desktop ngoài tiến trình qua UIA | NOT VERIFIED — chưa điều hướng F5/F7 hoặc popup. |
 | Windows 1366×768, 1920×1080, 2560×1440 và DPI 100/125/150% | NOT VERIFIED trên thiết bị thật |
@@ -31,7 +32,7 @@ Bản 0.1 là bản thử mô phỏng. Kết quả tự động cụ thể trong
 
 ## Cửa kiểm soát tích hợp thật
 
-1. CNTT xác nhận một phiên eHospital duy nhất và cung cấp môi trường test/bệnh nhân giả.
+1. CNTT/FPT cung cấp môi trường test/bệnh nhân giả hoặc API test chính thức cho đúng bản cài đặt; phiên sản xuất hiện tại không dùng cho điều hướng/thao tác.
 2. Trong môi trường đó, mở lần lượt các màn hình mục tiêu; chỉ thu ID/type/state/control label đã kiểm duyệt, tuyệt đối không lưu giá trị bệnh nhân.
 3. Xác minh danh tính trên từng cửa sổ chính, F5, F7, ký, PDF, báo cáo và lĩnh dược. Không dựa riêng tiêu đề cửa sổ.
 4. Thử trên dữ liệu giả: lưu/đọc lại, timeout, hủy, crash và tiếp tục. Lưu bất định không tự retry.
