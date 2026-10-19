@@ -29,7 +29,8 @@ def detect_his():
                 name = ctypes.create_unicode_buffer(32768)
                 size = ctypes.c_uint32(len(name))
                 if kernel.QueryFullProcessImageNameW(handle, 0, name, ctypes.byref(size)) and Path(name.value).name.lower() == "ehospital.exe":
-                    results.append({"pid": pid, "handle": window.handle, "title": window.window_text()})
+                    # Window captions can contain patient names; never read or return them.
+                    results.append({"pid": pid, "handle": window.handle})
             finally:
                 kernel.CloseHandle(handle)
         except Exception:
@@ -92,5 +93,17 @@ class Calibration:
 
 
 class LiveAdapter:
+    """Metadata-only eHospital adapter; all HIS mutations remain disabled."""
+
     def __init__(self):
-        raise SafetyError("Tích hợp ghi HIS thật đang khóa: chưa có ánh xạ UI và biên bản nghiệm thu tại bệnh viện.")
+        self.write_enabled = False
+
+    def inspect(self):
+        from his_auto.live_probe import inspect_ehospital
+        return inspect_ehospital()
+
+    def execute(self, *_args, **_kwargs):
+        raise SafetyError("Adapter hiện chỉ đọc metadata UI; không nhập, lưu, ký hoặc in trên HIS.")
+
+    def verify(self, *_args, **_kwargs):
+        return False

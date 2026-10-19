@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import sys
 import unicodedata
 
 # Only static HIS user-interface labels, never names/identifiers from records.
@@ -55,6 +56,7 @@ SAFE_TYPES = {
     "Pane", "RadioButton", "ScrollBar", "Tab", "TabItem",
     "Table", "Text", "Tree", "TreeItem", "Window",
 }
+SAFE_LABEL_TYPES = {"Button", "CheckBox", "MenuItem", "RadioButton", "TabItem"}
 
 
 def _key(value: str) -> str:
@@ -73,6 +75,18 @@ def safe_caption(value: str | None) -> str | None:
 
 def safe_control_type(value: str | None) -> str:
     return value if value in SAFE_TYPES else "Other"
+
+
+def read_safe_static_caption(control) -> str | None:
+    """Read captions only from control classes that represent static actions/tabs.
+
+    Edit, Text, grid, list, and container values can be patient data and are
+    never queried for their accessible name.
+    """
+    control_type = safe_control_type(control.element_info.control_type)
+    if control_type not in SAFE_LABEL_TYPES:
+        return None
+    return safe_caption(control.window_text())
 
 
 def safe_geometry(control_rect, parent_rect):
@@ -96,13 +110,17 @@ def inspect_ehospital(max_windows: int = 8, max_labels: int = 80) -> dict:
     # Import only on Windows, so pure sanitization tests work on CI elsewhere.
     from pywinauto import Desktop
     from his_auto.recognition import detect_his
+    from his_auto.live_screen_catalog import classify_static_labels
 
-    matches = detect_his()[:max_windows]
+    all_matches = detect_his()
+    matches = all_matches[:max_windows]
     summary = {
         "schema": 1,
         "mode": "READ_ONLY",
         "generated_utc": datetime.now(timezone.utc).isoformat(),
-        "windows_detected": len(matches),
+        "processes_detected": len({item["pid"] for item in all_matches}),
+        "windows_detected": len(all_matches),
+        "windows_truncated": len(all_matches) > max_windows,
         "windows": [],
         "note": "Không chứa tiêu đề cửa sổ, tên BN, hồ sơ, thuốc, text nhập, hoặc ảnh.",
     }
@@ -127,7 +145,7 @@ def inspect_ehospital(max_windows: int = 8, max_labels: int = 80) -> dict:
                     counts[ctl_type] += 1
                     if len(window_result["static_labels"]) >= max_labels:
                         continue
-                    label = safe_caption(control.window_text())
+                    label = read_safe_static_caption(control)
                     if not label or not control.is_visible():
                         continue
                     window_result["static_labels"].append({
@@ -142,11 +160,15 @@ def inspect_ehospital(max_windows: int = 8, max_labels: int = 80) -> dict:
             window_result["controls_by_type"] = dict(sorted(counts.items()))
         except Exception:
             window_result["inspection_status"] = "UNAVAILABLE"
+        safe_labels = [item["label"] for item in window_result["static_labels"]]
+        window_result["screen_hint"] = classify_static_labels("eHospital.exe", safe_labels)
         summary["windows"].append(window_result)
     return summary
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Khảo sát UIA eHospital, chỉ đọc và loại bỏ thông tin bệnh nhân")
     parser.add_argument("--out", type=Path, help="Đường dẫn JSON. Mặc định lưu vào LOCALAPPDATA ngoài repository.")
     args = parser.parse_args()

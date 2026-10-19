@@ -2,7 +2,16 @@
 
 **Nguồn:** 12 ảnh do người sử dụng cung cấp để xác định vùng giao diện. Ảnh gốc chứa dữ liệu người bệnh và **không được lưu vào repository công khai, CI artifacts hoặc log**.
 
-**Trạng thái:** SCREENSHOT_REVIEWED. Đối chiếu tên trường được thực hiện từ ảnh; **chưa xác minh ID điều khiển UIA, chưa thử nhập hoặc lưu lên HIS thực tế**. Cấu trúc WinForms trên máy DESKTOP-4VLEDVF đã được khảo sát metadata-only; đó không phải phép thử tương tác.
+**Trạng thái:** SCREENSHOT_REVIEWED; metadata UIA/Win32 chỉ đọc đã chạy trên eHospital 4.0.1.0. Lần probe 2026-10-19 nhận diện 1 cửa sổ 1936×1048 với gợi ý `inpatient_record` từ nhãn tĩnh allowlist. Người vận hành xác nhận đây là HIS sản xuất. Nhãn giao diện không xác minh khoa, bệnh nhân, đợt điều trị hay quyền. Chưa xác minh AutomationId/Name của trường nghiệp vụ, chưa điều hướng, nhập hoặc lưu trên HIS.
+
+## Kết quả khảo sát metadata-only trên máy
+
+- Product Version 4.0.0.0 / File Version 4.0.1.0.
+- Probe UIA mới nhất thấy một tiến trình và một cửa sổ 1936×1048; classifier đưa ra gợi ý `inpatient_record`. Kết quả này không chứng minh được khoa, bệnh nhân, đợt điều trị hoặc quyền truy cập.
+- Baseline Win32 trước đó ghi nhận hai tiến trình và bốn cửa sổ (311×102, 1936×1048, 476×369, 1936×1048); chưa chạy lại Win32 probe cùng lần kiểm tra mới.
+- Win32 đếm lớp control và rect tương đối; lớp `WindowsForms10.EDIT` có số lượng 1, 139, 3 và 37 theo bốn cửa sổ. Đây chưa phải ánh xạ trường; không có giá trị edit nào được đọc.
+- Báo cáo JSON chỉ lưu tại `%LOCALAPPDATA%\HISAutoAssistant`, không nằm trong repo. Không chứa title, ảnh, nội dung bệnh nhân hoặc giá trị trường.
+- File metadata ghi nhà cung cấp FPT Information System GMC, Product Version 4.0.0.0 và File Version 4.0.1.0. Tài liệu API/endpoint riêng cho bản cài đặt này chưa được cung cấp.
 
 ## Điều kiện chung trước mọi thao tác có tác động
 

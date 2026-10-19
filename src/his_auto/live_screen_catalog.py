@@ -98,5 +98,22 @@ def classify_static_screen(
     return module
 
 
+def classify_static_labels(process_name: str, visible_static_labels, minimum_anchors: int = 2) -> str | None:
+    """Return a screen hint only when one module has enough unique labels.
+
+    Unlike patient identity or authorization checks, this is only a navigation
+    hint. It deliberately needs no window title, which may contain patient data.
+    """
+    if _norm(process_name) != "ehospital.exe" or minimum_anchors < 2:
+        return None
+    available = {_norm(label) for label in visible_static_labels if isinstance(label, str)}
+    matches = []
+    for spec in SCREEN_HINTS:
+        evidence = {_norm(label) for label in spec.static_anchors} & available
+        if len(evidence) >= minimum_anchors:
+            matches.append(spec.key)
+    return matches[0] if len(matches) == 1 else None
+
+
 def is_reference_only(module: str | None) -> bool:
     return any(spec.key == module and spec.reference_only for spec in SCREEN_HINTS)
