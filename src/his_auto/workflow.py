@@ -18,8 +18,30 @@ class State(StrEnum):
 
 class Workflow:
     """One verified side effect per tick. Unknown outcomes never auto-retry."""
+    STEPS = (
+        "patient_check", "diagnosis", "services", "sign_orders", "print_orders",
+        "sheet1", "sheet2", "print_external", "sheet3", "print_followup",
+        "print_disclosure", "print_requisition",
+    )
+    STEP_LABELS = (
+        "Kiểm tra bệnh nhân và khoa",
+        "Nhập chẩn đoán và tổng kết bệnh án",
+        "Chuẩn bị, xác nhận chỉ định cận lâm sàng",
+        "Ký số các chỉ định đã phê duyệt",
+        "In phiếu chỉ định",
+        "Tạo tờ điều trị thứ nhất — Toa cấp thuốc",
+        "Tạo tờ điều trị thứ hai — Toa mua ngoài",
+        "In toa mua ngoài",
+        "Tạo tờ điều trị thứ ba — không thuốc, +30 phút",
+        "In phiếu theo dõi điều trị",
+        "In phiếu công khai thuốc",
+        "Lập và in phiếu lĩnh dược",
+    )
+
     def __init__(self, adapter, store, timeout=10):
         self.adapter, self.store, self.timeout = adapter, store, timeout
+        if getattr(adapter, "store", None) is None:
+            adapter.store = store
         self.state = State.NOT_STARTED
         self.index = 0
         self.dossier = None
@@ -76,28 +98,66 @@ class Workflow:
             self.check_context()
             if self.approved_hash != self.dossier.fingerprint:
                 raise SafetyError("Nội dung thay đổi sau duyệt.")
-            steps = ("diagnosis", "services", "sheet1", "sheet2", "sheet3")
-            step = steps[self.index]
+            step = self.STEPS[self.index]
             key = self.adapter.operation_key(self.dossier, step)
             previous = self.store.operation(key)
-            if previous and not self.adapter.verify(step, self.dossier):
+            skip_reason = self.adapter.skip_reason(step, self.dossier)
+            if previous and previous.startswith("SKIPPED:"):
+                if skip_reason != previous[len("SKIPPED:"):]:
+                    raise SafetyError("Điều kiện bỏ qua đã thay đổi. Chuẩn bị và duyệt lại hồ sơ.")
+            elif previous and not self.adapter.verify(step, self.dossier):
                 raise SafetyError("Trạng thái HIS không khớp nhật ký. Kiểm tra thủ công trước khi tiếp tục.")
             if not previous:
-                # Persist BEFORE calling the adapter: a crash cannot cause blind retry.
-                self.store.mark(key, "PENDING")
-                started = time.monotonic()
-                self.adapter.execute(step, self.dossier)
-                if time.monotonic() - started > self.timeout:
-                    raise SafetyError("Quá thời gian chờ. Không tự thực hiện lại.")
-                self.check_context()
-                if not self.adapter.verify(step, self.dossier):
-                    raise SafetyError("Chưa xác minh lưu thành công. Không tự thực hiện lại.")
-            self.store.mark(key, "COMPLETED")
-            self.store.audit(step, "COMPLETED")
+                if skip_reason:
+                    self.store.mark(key, "SKIPPED:" + skip_reason)
+                    self.store.audit(step, "SKIPPED")
+                else:
+                    # Persist BEFORE calling the adapter: a crash cannot cause blind retry.
+                    self.store.mark(key, "PENDING")
+                    started = time.monotonic()
+                    self.adapter.execute(step, self.dossier)
+                    if time.monotonic() - started > self.timeout:
+                        raise SafetyError("Quá thời gian chờ. Không tự thực hiện lại.")
+                    self.check_context(self.adapter.required_permission(step))
+                    if not self.adapter.verify(step, self.dossier):
+                        raise SafetyError("Chưa xác minh lưu thành công. Không tự thực hiện lại.")
+                    self.store.mark(key, "COMPLETED")
+                    self.store.audit(step, "COMPLETED")
+            elif previous.startswith("SKIPPED:"):
+                self.store.audit(step, "SKIPPED")
+            else:
+                self.store.mark(key, "COMPLETED")
+                self.store.audit(step, "COMPLETED")
             self.index += 1
-            if self.index == len(steps):
+            if self.index == len(self.STEPS):
                 self.state = State.COMPLETED
         except Exception as exc:
             self.state = State.FAILED
             self.error = str(exc)
             self.store.audit("workflow", "FAILED")
+
+    def recover(self):
+        """Resume only if the failed operation is absent or now verifiably complete."""
+        if self.state != State.FAILED or not self.dossier or self.index >= len(self.STEPS):
+            raise SafetyError("Không có bước lỗi có thể khôi phục.")
+        self.check_context()
+        if self.approved_hash != self.dossier.fingerprint:
+            raise SafetyError("Nội dung duyệt đã thay đổi. Chuẩn bị và duyệt lại.")
+        key = self.adapter.operation_key(self.dossier, self.STEPS[self.index])
+        previous = self.store.operation(key)
+        if previous == "PENDING":
+            if not self.adapter.verify(self.STEPS[self.index], self.dossier):
+                raise SafetyError("Kết quả thao tác chưa rõ. Kiểm tra simulator thủ công; không tự chạy lại.")
+            self.store.mark(key, "COMPLETED")
+            self.store.audit(self.STEPS[self.index], "RECOVERED")
+            self.index += 1
+        elif previous and previous.startswith("SKIPPED:"):
+            if self.adapter.skip_reason(self.STEPS[self.index], self.dossier) != previous[len("SKIPPED:"):]:
+                raise SafetyError("Điều kiện bỏ qua đã thay đổi. Chuẩn bị và duyệt lại.")
+            self.index += 1
+        elif previous:
+            if not self.adapter.verify(self.STEPS[self.index], self.dossier):
+                raise SafetyError("Không xác minh được thao tác trước đó. Không tự thực hiện lại.")
+            self.index += 1
+        self.error = ""
+        self.state = State.APPROVED

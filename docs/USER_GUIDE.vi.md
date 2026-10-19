@@ -5,11 +5,13 @@
 3. Có thể chọn giang mai sớm: ICD sẽ bị xóa để người dùng tự chọn, lần tiêm để trống. Nhóm tiềm ẩn: chọn mũi 1, 2 hoặc 3 từ lịch sử đã xác nhận. Không tự xác định phác đồ hoặc lịch hẹn.
 4. Nếu cần thử toa: **Soạn toa / lĩnh dược** → nạp danh mục mẫu. Bảng cuộn ngang có các cột tên, số lượng, cách dùng, thời gian, miễn phí, hàm lượng/quy cách, tổng liều và kho. Nhập tổng liều giả đã duyệt cho hai dòng còn `CHƯA DUYỆT`; kiểm tra đúng danh mục TEST; tích duyệt thuốc. Có thể xóa dòng không cần. Không suy tổng liều từ số lượng lọ.
 5. Dịch vụ để trống nếu không chỉ định. Danh mục khảo sát chỉ là dữ liệu TEST tùy chọn.
-6. **Chuẩn bị hồ sơ** → đọc bản xem trước gồm bệnh án, đợt điều trị, ba tờ, lần đo gốc, toa riêng và dịch vụ → **Duyệt hồ sơ đang xem** → **Bắt đầu**.
-7. Mỗi nhịp xử lý một bước; có thể tạm dừng, tiếp tục hoặc dừng khẩn cấp/Esc. Thay đổi dữ liệu sau duyệt sẽ khóa quy trình. Muốn đổi nội dung, chuẩn bị và duyệt lại.
-8. Hoàn thành mô phỏng → **Duyệt và ký số tài liệu đang xem**. Đây là hành động duyệt rõ ràng cho đúng phiên bản đang hiển thị. Không ký hai lần; kết quả chưa rõ cần kiểm tra, không tự thử lại.
-9. Chọn máy in/khổ/số bản trong cấu hình → **Duyệt và in**. Đây là hàng đợi giả, không in giấy thật. Danh sách máy in Windows chỉ để kiểm tra cấu hình.
-10. Trang chủ → **Mở HIS Simulator**. Chọn lỗi giả (đổi bệnh nhân, đổi đợt, sai khoa, HIS treo, thiếu quyền ký, kết quả ký chưa rõ, lỗi lưu tờ 2) để kiểm tra dừng. Không đổi về bình thường rồi mặc định chạy lại thao tác chưa rõ.
+6. Nếu có thuốc, nhập ba nguồn JSON (y lệnh, tổng hợp, phiếu lĩnh) có cùng mã và số lượng; tổng phải bằng các toa đã duyệt. Kiểm tra ba nguồn trước khi chuẩn bị. Không có thuốc thì để trống cả ba.
+7. **Chuẩn bị hồ sơ** → đọc bản xem trước gồm bệnh án, đợt điều trị, ba tờ, lần đo gốc, toa riêng và dịch vụ → **Duyệt hồ sơ đang xem** → **Bắt đầu**.
+8. Workflow lần lượt chạy 12 mục. Mục không áp dụng sẽ được bỏ qua và nêu lý do. Có thể tạm dừng, tiếp tục hoặc dừng khẩn cấp/Esc. Thay đổi dữ liệu sau duyệt sẽ khóa quy trình. Muốn đổi nội dung, chuẩn bị và duyệt lại.
+9. Nếu lỗi, chỉ dùng **Khôi phục sau lỗi đã kiểm tra** khi trạng thái đã được đối chiếu. Kết quả `PENDING` chưa rõ sẽ không tự chạy lại; phải kiểm tra simulator.
+10. Hoàn thành mô phỏng → **Duyệt và ký số tài liệu đang xem**. Đây là hành động duyệt rõ ràng cho đúng phiên bản đang hiển thị. Không ký hai lần; kết quả chưa rõ cần kiểm tra, không tự thử lại.
+11. Chọn máy in/khổ/số bản trong cấu hình → **Duyệt và in**. Đây là hàng đợi giả, không in giấy thật. Danh sách máy in Windows chỉ để kiểm tra cấu hình.
+12. Trang chủ → **Mở HIS Simulator**. Chọn lỗi giả (đổi bệnh nhân, đổi đợt, sai khoa, HIS treo, thiếu quyền ký, kết quả ký chưa rõ, lỗi lưu tờ 2 hoặc lỗi hàng đợi in) để kiểm tra dừng. Không đổi về bình thường rồi mặc định chạy lại thao tác chưa rõ.
 
 ## Quản lý mẫu
 
@@ -17,7 +19,7 @@
 
 ## Đối chiếu lĩnh dược
 
-Nhập ba đối tượng JSON với cùng mã TEST và số lượng. Ví dụ y lệnh `{"TEST-BENZ": 2}`, tổng hợp `{"TEST-BENZ": 1}`, phiếu lĩnh `{"TEST-BENZ": 1}` phải bị chặn. Chỉ tiếp tục sau khi người dùng giải quyết sai lệch. Chức năng này kiểm tra số lượng, chưa tạo/lưu phiếu lĩnh tự động.
+Nhập ba đối tượng JSON (y lệnh, tổng hợp và phiếu lĩnh) với cùng mã TEST và số lượng. Ví dụ `{"TEST-BENZ": 2}` ở cả ba nguồn khớp toa có 2 đơn vị; chênh lệch, thiếu mã hoặc thiếu một nguồn đều bị chặn. Chức năng này kiểm tra số lượng trong simulator, chưa kết nối hay tạo phiếu lĩnh trên HIS thật.
 
 ## Lỗi và khôi phục
 

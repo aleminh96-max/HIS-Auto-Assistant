@@ -11,7 +11,8 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
     QDateTimeEdit, QTabWidget, QMessageBox, QFileDialog, QScrollArea, QSpinBox,
     QTableWidget, QTableWidgetItem, QProgressBar, QTreeWidget, QTreeWidgetItem,
     QGroupBox)
-from .domain import ClinicalTemplate, Group, Vitals, Medication, SafetyError, prepare_dossier, reconcile_quantities
+from .domain import (ClinicalTemplate, Group, Vitals, Medication, SafetyError, prepare_dossier,
+                     validate_requisition_sources)
 from .storage import Store
 from .workflow import Workflow, State
 from .simulator import SimulatorAdapter
@@ -112,7 +113,7 @@ class AssistantWindow(QMainWindow):
         self.progress = QProgressBar()
         self.progress.setRange(0, 12)
         self.progress.setValue(0)
-        self.progress.setFormat("%p% — %v/12 mục đã xác minh")
+        self.progress.setFormat("%p% — %v/12 mục đã xử lý hoặc bỏ qua có lý do")
         progress_layout.addWidget(self.progress)
         self.progress_detail = QLabel("Thời gian: 00:00 | Thời gian còn lại: chưa đủ dữ liệu")
         progress_layout.addWidget(self.progress_detail)
@@ -140,6 +141,7 @@ class AssistantWindow(QMainWindow):
                           ("3. BẮT ĐẦU TỰ ĐỘNG", self.start),
                           ("Tạm dừng", self.workflow.pause),
                           ("Tiếp tục", self.start),
+                          ("Khôi phục sau lỗi đã kiểm tra", self.recover_workflow),
                           ("DỪNG KHẨN CẤP", self.workflow.stop)):
             button = QPushButton(label)
             button.clicked.connect(lambda checked=False, f=fn: self.run(f))
@@ -265,7 +267,7 @@ class AssistantWindow(QMainWindow):
         self.services.setMaximumHeight(85)
         box.addWidget(self.services)
         self.button(box,"Nạp dịch vụ mẫu TEST",lambda: self.services.setPlainText("[TEST] Công chích STD\n[TEST] Test lẫy da (Prick test)"))
-        box.addWidget(QLabel("Đối chiếu lĩnh dược: số lượng theo y lệnh / tổng hợp / phiếu lĩnh (JSON mã TEST → số lượng)"))
+        box.addWidget(QLabel("Nếu có thuốc, nhập đủ ba nguồn JSON theo cùng mã và số lượng TEST. Tổng phải khớp các toa đã duyệt. Để trống cả ba nếu không có thuốc."))
         self.reconcile_inputs = []
         for label in ("Y lệnh", "Tổng hợp", "Phiếu lĩnh"):
             e = QLineEdit()
@@ -302,9 +304,25 @@ class AssistantWindow(QMainWindow):
         return tuple(m for m in rows if m.free),tuple(m for m in rows if not m.free)
 
     def check_requisition(self):
-        sources = [json.loads(e.text()) for e in self.reconcile_inputs]
-        reconcile_quantities(*sources)
-        QMessageBox.information(self,"Đối chiếu TEST","Ba nguồn khớp. Chưa tạo, lưu hoặc in phiếu lĩnh thật.")
+        free, external = self.medication_drafts()
+        sources = self.requisition_source_data()
+        normalized = validate_requisition_sources(tuple(free) + tuple(external), sources)
+        message = "Ba nguồn khớp với toa TEST đã duyệt." if normalized else "Không có thuốc; bước lĩnh dược sẽ được bỏ qua có lý do."
+        QMessageBox.information(self,"Đối chiếu TEST",message + " Chưa gửi lệnh tới HIS hoặc máy in thật.")
+
+    def requisition_source_data(self):
+        raw = [editor.text().strip() for editor in self.reconcile_inputs]
+        if not any(raw):
+            return ()
+        if not all(raw):
+            raise SafetyError("Nhập đủ cả ba nguồn số lượng lĩnh hoặc xóa cả ba.")
+        try:
+            sources = tuple(json.loads(value) for value in raw)
+        except json.JSONDecodeError:
+            raise SafetyError("Số lượng lĩnh phải là JSON hợp lệ, ví dụ {\"TEST-MED\": 2}.") from None
+        if any(not isinstance(source, dict) for source in sources):
+            raise SafetyError("Mỗi nguồn số lượng phải là một đối tượng JSON theo mã TEST.")
+        return sources
 
     def group_changed(self, value):
         if not hasattr(self, "fields"):
@@ -327,9 +345,11 @@ class AssistantWindow(QMainWindow):
         measured = self.measured.dateTime().toPython().astimezone()
         vitals = Vitals(measured, **{n:float(e.text().replace(",",".")) for n,e in self.vital_fields.items()})
         free,external = self.medication_drafts()
+        requisition_sources = self.requisition_source_data()
         return prepare_dossier(self.adapter.context(), self.current_template(), vitals, at,free=free,external=external,
             services=tuple(line.strip() for line in self.services.toPlainText().splitlines() if line.strip()),
             medication_reviewed=self.med_review.isChecked(),
+            requisition_sources=requisition_sources,
             injection=self.injection.currentIndex() or None, history_confirmed=self.history_confirm.isChecked(),
             third_reviewed=self.third.isChecked(), abnormal_reviewed=self.abnormal.isChecked())
 
@@ -355,6 +375,10 @@ class AssistantWindow(QMainWindow):
             self.workflow_started_at = datetime.now().astimezone()
         self.workflow.start()
 
+    def recover_workflow(self):
+        self.ensure_unchanged()
+        self.workflow.recover()
+
     def advance(self):
         if self.workflow.state == State.RUNNING:
             try:
@@ -374,6 +398,7 @@ class AssistantWindow(QMainWindow):
         if hasattr(self,"actions"):
             self.actions["3. BẮT ĐẦU TỰ ĐỘNG"].setEnabled(self.workflow.state == State.APPROVED)
             self.actions["Tiếp tục"].setEnabled(self.workflow.state == State.PAUSED)
+            self.actions["Khôi phục sau lỗi đã kiểm tra"].setEnabled(self.workflow.state == State.FAILED)
             self.actions["Tạm dừng"].setEnabled(self.workflow.state == State.RUNNING)
 
     def refresh_dashboard(self):
@@ -394,47 +419,37 @@ class AssistantWindow(QMainWindow):
             f"Nhóm: {self.group.currentText()} | ICD: {self.fields['icd'].text() if hasattr(self, 'fields') else '—'} | "
             f"Lần tiêm: {self.injection.currentText()}"
         )
-        # Only simulator operations with a persisted verification count as complete.
-        # Unsupported workflow stages stay visible and never increase the percentage.
-        specs = [
-            ("Kiểm tra bệnh nhân và khoa", None, "Ngữ cảnh tổng hợp của HIS Simulator"),
-            ("Nhập chẩn đoán và tổng kết bệnh án", "diagnosis", "Lưu và đối chiếu snapshot simulator"),
-            ("Chuẩn bị, xác nhận chỉ định cận lâm sàng", "services", "Lưu và đối chiếu danh sách dịch vụ giả"),
-            ("Ký số các chỉ định đã phê duyệt", None, "Chưa có luồng ký chỉ định riêng trong simulator"),
-            ("In phiếu chỉ định", None, "Chưa có luồng in phiếu chỉ định"),
-            ("Tạo tờ điều trị thứ nhất — Toa cấp thuốc", "sheet1", "Lưu và đối chiếu tờ 1 giả"),
-            ("Tạo tờ điều trị thứ hai — Toa mua ngoài", "sheet2", "Lưu và đối chiếu tờ 2 giả"),
-            ("In toa mua ngoài", None, "Chưa nối in toa vào workflow"),
-            ("Tạo tờ điều trị thứ ba — không thuốc, +30 phút", "sheet3", "Lưu và đối chiếu tờ 3 giả"),
-            ("In phiếu theo dõi điều trị", None, "Chưa triển khai trong simulator"),
-            ("In phiếu công khai thuốc", None, "Chưa triển khai trong simulator"),
-            ("Lập và in phiếu lĩnh dược", None, "Chưa triển khai trong simulator"),
-        ]
-        core_index = {"diagnosis": 0, "services": 1, "sheet1": 2, "sheet2": 3, "sheet3": 4}
-        verified_count = 1 if prepared and context_valid else 0
+        specs = list(zip(self.workflow.STEP_LABELS, self.workflow.STEPS))
+        verified_count = 0
         rows = []
-        for number, (title, core, detail) in enumerate(specs, 1):
-            state = "CHƯA CHUẨN BỊ"
-            if core is None:
-                if number == 1 and prepared and context_valid:
-                    state = "ĐÃ XÁC MINH"
-                elif number == 1 and prepared:
-                    state, detail = "LỖI / CẦN KIỂM TRA", "Ngữ cảnh hiện tại không khớp hồ sơ đã chuẩn bị"
-                elif number > 1:
-                    state = "CHƯA HỖ TRỢ"
-            elif prepared:
-                pos = core_index[core]
-                if self.workflow.index > pos:
-                    state = "ĐÃ XÁC MINH"
-                    verified_count += 1
-                elif self.workflow.state == State.RUNNING and self.workflow.index == pos:
-                    state = "ĐANG THỰC HIỆN"
-                elif self.workflow.state == State.FAILED and self.workflow.index == pos:
-                    state, detail = "LỖI / CẦN KIỂM TRA", self.workflow.error or detail
-                elif self.workflow.state == State.PAUSED and self.workflow.index == pos:
-                    state = "TẠM DỪNG"
+        for number, (title, step) in enumerate(specs, 1):
+            state, detail = ("CHƯA CHUẨN BỊ", "" if context_valid else "Chỉ chạy trên HIS Simulator giả")
+            if prepared and self.dossier:
+                if not context_valid:
+                    state, detail = "NGỮ CẢNH KHÔNG KHỚP", "Không thực hiện thao tác"
                 else:
-                    state = "CHỜ THỰC HIỆN"
+                    key = self.adapter.operation_key(self.dossier, step)
+                    persisted = self.store.operation(key)
+                if not context_valid:
+                    pass
+                elif persisted and persisted.startswith("SKIPPED:"):
+                    state, detail = "BỎ QUA CÓ LÝ DO", persisted[len("SKIPPED:"):]
+                    verified_count += 1
+                elif persisted == "COMPLETED" and self.adapter.verify(step, self.dossier):
+                    state, detail = "ĐÃ XÁC MINH", "Trạng thái đã lưu khớp dữ liệu simulator"
+                    verified_count += 1
+                elif persisted == "PENDING":
+                    state, detail = "CẦN KIỂM TRA", "Thao tác có thể đã chạy; không tự gửi lại"
+                elif self.workflow.state == State.FAILED and self.workflow.index == number - 1:
+                    state, detail = "LỖI / CẦN KIỂM TRA", self.workflow.error
+                elif self.workflow.state == State.RUNNING and self.workflow.index == number - 1:
+                    state, detail = "ĐANG THỰC HIỆN", "Đang xử lý simulator"
+                elif self.workflow.state == State.PAUSED and self.workflow.index == number - 1:
+                    state, detail = "TẠM DỪNG", "Có thể tiếp tục"
+                elif not context_valid:
+                    state, detail = "NGỮ CẢNH KHÔNG KHỚP", "Không thực hiện thao tác"
+                else:
+                    state, detail = "CHỜ THỰC HIỆN", ""
             rows.append((number, title, state, detail))
         if not self._timeline_items:
             for _ in rows:
@@ -448,13 +463,13 @@ class AssistantWindow(QMainWindow):
         self.timeline.resizeColumnToContents(0)
         self.timeline.resizeColumnToContents(1)
         self.progress.setValue(verified_count)
-        self.progress_label.setText(f"Đã xác minh {verified_count}/12 mục — {self.workflow.state}")
-        if self.workflow.state == State.RUNNING and self.workflow.index < 5:
-            active = f"Đang thực hiện: {specs[self.workflow.index + 1][0]}"
+        self.progress_label.setText(f"Đã xử lý / bỏ qua có lý do {verified_count}/12 mục — {self.workflow.state}")
+        if self.workflow.state == State.RUNNING and self.workflow.index < len(specs):
+            active = f"Đang thực hiện: {specs[self.workflow.index][0]}"
         elif self.workflow.state == State.FAILED:
             active = f"Đã dừng do lỗi: {self.workflow.error}"
         elif self.workflow.state == State.COMPLETED:
-            active = "5 thao tác mô phỏng đã xác minh; các mục chưa hỗ trợ vẫn còn."
+            active = "Đã xử lý và xác minh đủ 12 bước mô phỏng."
         else:
             active = f"Trạng thái hiện tại: {self.workflow.state}"
         elapsed = "00:00"

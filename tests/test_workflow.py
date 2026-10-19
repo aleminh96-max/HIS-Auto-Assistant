@@ -26,13 +26,13 @@ def test_full_workflow_and_resume_without_duplicates(adapter,store,dossier):
     w.tick()
     assert len(adapter.calls) == 1
     w.start()
-    for _ in range(4): w.tick()
+    for _ in range(11): w.tick()
     assert w.state == State.COMPLETED
-    assert adapter.calls == ["diagnosis","services","sheet1","sheet2","sheet3"]
+    assert len(adapter.calls) == 6
     w = approved(adapter,store,dossier)
-    for _ in range(5): w.tick()
+    for _ in range(12): w.tick()
     assert w.state == State.COMPLETED
-    assert len(adapter.calls) == 5
+    assert len(adapter.calls) == 6
 
 
 @pytest.mark.parametrize("changes",[{"record_id":"OTHER"},{"episode_id":"OTHER"},{"department":"OTHER"},
@@ -47,6 +47,7 @@ def test_context_changes_stop(adapter,store,dossier,changes):
 
 def test_ambiguous_outcome_never_retried(adapter,store,dossier):
     w = approved(adapter,store,dossier)
+    w.tick()
     adapter.fail_step = "diagnosis"
     w.tick()
     assert w.state == State.FAILED
@@ -54,8 +55,9 @@ def test_ambiguous_outcome_never_retried(adapter,store,dossier):
     adapter.fail_step = None
     w = approved(adapter,store,dossier)
     w.tick()
+    w.tick()
     assert w.state == State.FAILED
-    assert not adapter.calls
+    assert adapter.calls == ["patient_check"]
 
 
 def test_emergency_stop(adapter,store,dossier):
@@ -78,10 +80,10 @@ def test_simulator_reconciles_after_restart(store,dossier):
     from his_auto.simulator import SimulatorAdapter
     a = SimulatorAdapter(store)
     w = approved(a,store,dossier)
-    for _ in range(5): w.tick()
+    for _ in range(12): w.tick()
     assert w.state == State.COMPLETED
     restored = SimulatorAdapter(store)
     w2 = approved(restored,store,dossier)
-    for _ in range(5): w2.tick()
+    for _ in range(12): w2.tick()
     assert w2.state == State.COMPLETED
-    assert len(restored.calls) == 5
+    assert len(restored.calls) == 6

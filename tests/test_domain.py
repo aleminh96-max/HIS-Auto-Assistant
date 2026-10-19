@@ -49,7 +49,9 @@ def test_separate_prescriptions(adapter,clinical,vitals,at):
     free = Medication("TEST-MED","DỮ LIỆU GIẢ — thuốc",2,"Tiêm bắp",at,True,"TEST","TEST")
     external = Medication("TEST-SUPPLY","DỮ LIỆU GIẢ — vật tư",4,".",at,False,"TEST","Vật tư")
     kwargs = dict(injection=1,history_confirmed=True,third_reviewed=True,medication_reviewed=True)
-    d = prepare_dossier(adapter.context(),clinical,vitals,at,free=(free,),external=(external,),**kwargs)
+    sources = ({"TEST-MED": 2, "TEST-SUPPLY": 4},) * 3
+    d = prepare_dossier(adapter.context(),clinical,vitals,at,free=(free,),external=(external,),
+                        requisition_sources=sources,**kwargs)
     assert d.sheets[0].medications == (free,)
     assert d.sheets[1].medications == (external,)
     assert not d.sheets[2].medications
@@ -57,6 +59,8 @@ def test_separate_prescriptions(adapter,clinical,vitals,at):
         prepare_dossier(adapter.context(),clinical,vitals,at,external=(external,external),**kwargs)
     with pytest.raises(SafetyError,match="trộn"):
         prepare_dossier(adapter.context(),clinical,vitals,at,external=(free,),**kwargs)
+    with pytest.raises(SafetyError,match="đủ số lượng"):
+        prepare_dossier(adapter.context(),clinical,vitals,at,free=(free,),**kwargs)
 
 
 def test_quantity_discrepancy():

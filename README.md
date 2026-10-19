@@ -22,21 +22,21 @@ python -m pytest -v --junitxml=test-results.xml
 
 ## Chức năng bản thử
 
-- Trang tổng quan một màn hình hiển thị ngữ cảnh mô phỏng, tiến trình, 12 mục workflow và nhật ký audit. Chỉ các thao tác simulator đã đối chiếu mới được tính hoàn thành; mục chưa triển khai luôn hiển thị riêng và tiến trình không được báo 100%.
+- Trang tổng quan một màn hình hiển thị ngữ cảnh mô phỏng, tiến trình, 12 mục workflow và nhật ký audit. Tiến trình chỉ tăng khi thao tác được xác minh hoặc được bỏ qua với lý do áp dụng; mọi bước đều chạy trên simulator.
 
 - Mẫu bệnh án: tạo, sửa, nhân bản, mặc định, lịch sử phiên bản, nhập/xuất JSON và sao lưu SQLite.
 - Nhập lâm sàng, ICD thủ công cho nhóm sớm; A53.0 cho nhóm tiềm ẩn; xác nhận lịch sử mũi 1–3.
 - Dấu hiệu sinh tồn có thời điểm gốc, kiểm tra định dạng và yêu cầu rà soát số đo bất thường.
 - Ba tờ T, T, T+30 phút, xử lý qua ngày; tờ 3 không thuốc; dữ liệu cũ không bị gắn thời điểm đo mới.
 - Soạn hai toa riêng từ danh mục TEST khảo sát; không tự tính tổng liều; duyệt hàm lượng, tổng liều, cách dùng, thời gian và an toàn trước khi chạy.
-- Dịch vụ tùy chọn; đối chiếu y lệnh, tổng hợp và phiếu lĩnh, chặn số lượng không khớp.
+- Dịch vụ tùy chọn; đối chiếu y lệnh, tổng hợp và phiếu lĩnh, chặn số lượng không khớp trước khi chuẩn bị hồ sơ.
 - Workflow có duyệt nội dung, tạm dừng, tiếp tục, Esc dừng khẩn cấp; kiểm tra ngữ cảnh trước/sau từng bước; lưu dấu vết trước thao tác và không tự thử lại kết quả chưa rõ.
 - Duyệt chữ ký gắn đúng tài liệu/nội dung; chỉ gửi ký một lần; mô phỏng lệnh in và chống gửi trùng.
 - Phát hiện tiến trình eHospital ở chế độ chỉ đọc. Thư viện nhận diện UIA, ảnh và hồ sơ tọa độ tương đối có kiểm tra DPI/thiết bị.
 
 ## Giới hạn cần đọc
 
-Workflow hiện gọi **backend simulator** (lưu dấu vân tay trạng thái vào SQLite), không điều khiển eHospital. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
+Workflow hiện gọi **backend simulator** (lưu dấu vân tay trạng thái vào SQLite), không điều khiển eHospital. Tiến trình eHospital 4.0.1.0 được phát hiện trên máy phát triển, nhưng chưa kiểm tra cửa sổ hoặc dữ liệu và chưa xác minh tương thích. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
 
 ## Dữ liệu
 

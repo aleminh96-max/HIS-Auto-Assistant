@@ -15,7 +15,7 @@ def test_gui_prepare_review_three_sheets(qtbot,store):
     assert window.workflow.state == State.WAITING_FOR_REVIEW
     window.approve()
     window.start()
-    for _ in range(5): window.advance()
+    for _ in range(12): window.advance()
     assert window.workflow.state == State.COMPLETED
     window.open_simulator()
     qtbot.addWidget(window.sim_window)
@@ -54,6 +54,14 @@ def test_gui_survey_requires_review_and_has_separate_prescriptions(qtbot,store):
     with pytest.raises(SafetyError): window.current_dossier()
     window.order_table.item(0,7).setText("TEST — tổng liều người thử nhập")
     window.order_table.item(1,7).setText("TEST — tổng liều người thử nhập")
+    rows = {}
+    for row in range(window.order_table.rowCount()):
+        code = window.order_table.item(row,0).text()
+        rows[code] = rows.get(code, 0) + int(window.order_table.item(row,2).text())
+    import json
+    source_json = json.dumps(rows)
+    for editor in window.reconcile_inputs:
+        editor.setText(source_json)
     window.prepare()
     assert len(window.dossier.sheets[0].medications) == 1
     assert len(window.dossier.sheets[1].medications) == 5
@@ -71,22 +79,21 @@ def test_dashboard_twelve_items_never_claims_unverified_completion(qtbot,store):
     window.third.setChecked(True)
     window.prepare()
     window.update_status()
-    assert window.timeline.topLevelItem(0).text(1) == "ĐÃ XÁC MINH"
-    assert window.progress.value() == 1
+    assert window.timeline.topLevelItem(0).text(1) == "CHỜ THỰC HIỆN"
+    assert window.progress.value() == 0
     assert window.tabs.currentIndex() == 0
     assert "DỮ LIỆU GIẢ" in window.inline_preview.toPlainText()
     window.approve()
     window.start()
-    for _ in range(5):
+    for _ in range(12):
         window.advance()
     assert window.workflow.state == State.COMPLETED
-    assert window.progress.value() == 6
+    assert window.progress.value() == 12
     assert window.progress.maximum() == 12
-    assert window.progress.value() < window.progress.maximum()
-    assert window.timeline.topLevelItem(3).text(1) == "CHƯA HỖ TRỢ"
-    assert window.timeline.topLevelItem(11).text(1) == "CHƯA HỖ TRỢ"
+    assert window.timeline.topLevelItem(3).text(1) == "BỎ QUA CÓ LÝ DO"
+    assert window.timeline.topLevelItem(11).text(1) == "BỎ QUA CÓ LÝ DO"
     from dataclasses import replace
     window.adapter.patient = replace(window.adapter.patient, record_id="DEMO-OTHER")
     window.update_status()
-    assert window.timeline.topLevelItem(0).text(1) == "LỖI / CẦN KIỂM TRA"
-    assert window.progress.value() == 5
+    assert window.timeline.topLevelItem(0).text(1) == "NGỮ CẢNH KHÔNG KHỚP"
+    assert window.progress.value() == 0

@@ -132,6 +132,7 @@ class Dossier:
     services: tuple[str, ...] = ()
     injection: int | None = None
     discharge: str = ""
+    requisition_sources: tuple[tuple[tuple[str, str], ...], ...] = ()
 
     @property
     def fingerprint(self):
@@ -142,9 +143,32 @@ def digest(value):
     return hashlib.sha256(json.dumps(asdict(value), ensure_ascii=False, sort_keys=True, default=str).encode()).hexdigest()
 
 
+def validate_requisition_sources(medications, requisition_sources):
+    totals = {}
+    for medication in medications:
+        totals[medication.catalog_id] = totals.get(medication.catalog_id, 0) + medication.quantity
+    if not totals:
+        if requisition_sources:
+            raise SafetyError("Không có thuốc trong hồ sơ; không thể tạo phiếu lĩnh dược.")
+        return ()
+    if len(requisition_sources) != 3:
+        raise SafetyError("Nhập đủ số lượng theo y lệnh, tổng hợp và phiếu lĩnh trước khi chạy workflow.")
+    try:
+        sources = tuple({str(code): Decimal(str(quantity)) for code, quantity in source.items()}
+                        for source in requisition_sources)
+    except (AttributeError, TypeError, ValueError, ArithmeticError):
+        raise SafetyError("Ba nguồn số lượng lĩnh phải là các mã TEST và số lượng hợp lệ.") from None
+    reconcile_quantities(*sources)
+    expected = {code: Decimal(quantity) for code, quantity in totals.items()}
+    if sources[0] != expected:
+        raise SafetyError("Số lượng đối chiếu không khớp toa đã duyệt.")
+    return tuple(tuple(sorted((code, str(quantity)) for code, quantity in source.items()))
+                 for source in sources)
+
+
 def prepare_dossier(context, clinical, vitals, at, free=(), external=(), services=(), injection=None,
                     history_confirmed=False, third_reviewed=False, abnormal_reviewed=False, discharge="",
-                    medication_reviewed=False):
+                    medication_reviewed=False, requisition_sources=()):
     context.validate()
     clinical.validate()
     vitals.validate()
@@ -175,15 +199,21 @@ def prepare_dossier(context, clinical, vitals, at, free=(), external=(), service
             raise SafetyError("Trùng mặt hàng trong toa.")
     if len(services) != len(set(services)):
         raise SafetyError("Trùng dịch vụ.")
+    normalized_sources = validate_requisition_sources(tuple(free) + tuple(external), requisition_sources)
     sheets = (TreatmentSheet(1, at, "Cấp thuốc", clinical, vitals, tuple(free)),
               TreatmentSheet(2, at, "Mua ngoài", clinical, vitals, tuple(external)),
               TreatmentSheet(3, at + timedelta(minutes=30), "Không thuốc", clinical, vitals))
-    return Dossier(context, sheets, tuple(services), injection, discharge)
+    return Dossier(context, sheets, tuple(services), injection, discharge, normalized_sources)
 
 
 def reconcile_quantities(approved, aggregated, requested):
     if not approved or approved != aggregated or approved != requested:
         raise SafetyError("Sai lệch y lệnh / tổng hợp / phiếu lĩnh. Cần kiểm tra, không tự sửa.")
-    if any(not Decimal(str(q)).is_finite() or Decimal(str(q)) <= 0 for q in approved.values()):
+    try:
+        invalid = any(not Decimal(str(q)).is_finite() or Decimal(str(q)) <= 0
+                      for source in (approved, aggregated, requested) for q in source.values())
+    except (ArithmeticError, ValueError):
+        raise SafetyError("Số lượng lĩnh không hợp lệ.") from None
+    if invalid:
         raise SafetyError("Số lượng lĩnh không hợp lệ.")
     return True

@@ -4,7 +4,9 @@ Bản 0.1 là bản thử mô phỏng. Kết quả tự động cụ thể trong
 
 | Phạm vi | Bằng chứng / trạng thái |
 |---|---|
-| Dashboard 12 mục và phần trăm theo các thao tác simulator đã xác minh; ngữ cảnh đổi làm mất xác minh bước 1; không báo 100% khi còn bước chưa hỗ trợ | pytest-qt `test_dashboard_twelve_items_never_claims_unverified_completion` trên Windows, Python 3.13 |
+| Dashboard 12 mục theo trạng thái đã lưu, đối chiếu, hoặc bỏ qua có lý do; ngữ cảnh đổi khóa trạng thái | pytest-qt `test_dashboard_twelve_items_never_claims_unverified_completion` trên Windows, Python 3.13 |
+| Workflow 12 bước gồm tạo phiếu, ký/in mô phỏng, xử lý bỏ qua, tiếp tục và khôi phục kết quả không rõ | pytest workflow, documents và GUI trên Windows, Python 3.13 |
+| Ba nguồn số lượng lĩnh dược khớp toa trước khi chuẩn bị; không có thuốc thì bỏ qua kèm lý do | pytest domain và GUI |
 | ICD, lịch sử mũi 1–3, số đo, ba tờ qua ngày, không thuốc tờ 3 | pytest domain |
 | Tách toa, chống trùng, sai lệch số lượng | pytest domain, GUI |
 | CRUD mẫu, phiên bản, nhập/xuất, sao lưu | pytest storage |
@@ -14,6 +16,7 @@ Bản 0.1 là bản thử mô phỏng. Kết quả tự động cụ thể trong
 | GUI nhập → chuẩn bị → duyệt → ba tờ; sửa sau duyệt | pytest-qt offscreen trên Windows |
 | Nhận diện ảnh duy nhất / mơ hồ, tọa độ tương đối | pytest với ảnh tổng hợp |
 | eHospital UIA thực tế / ánh xạ trường / OCR | NOT VERIFIED |
+| eHospital.exe trên máy thử nghiệm | Phát hiện tiến trình; tệp phiên bản Product 4.0.0.0 / File 4.0.1.0. Chưa mở UI, chưa đọc hồ sơ và chưa kiểm chứng tương thích. |
 | Thao tác desktop ngoài tiến trình qua UIA | NOT VERIFIED |
 | Windows 1366×768, 1920×1080, 2560×1440 và DPI 100/125/150% | NOT VERIFIED trên thiết bị thật |
 | Bảng thuốc HIS cuộn ngang, checkbox đã chọn, F5/F7 ngoài tiến trình | NOT VERIFIED |
