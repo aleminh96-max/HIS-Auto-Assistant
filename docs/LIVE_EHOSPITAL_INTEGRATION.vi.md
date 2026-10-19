@@ -1,7 +1,9 @@
 # Bước đầu kết nối eHospital thật – khảo sát chỉ đọc
 
 ## Trạng thái
-Mã nguồn trên nhánh này đã có công cụ kiểm tra cấu trúc điều khiển Windows UI Automation của eHospital đang chạy, **không phải adapter ghi vào HIS**. Chưa có kết quả khảo sát hoặc kiểm thử trên máy bệnh viện. Chức năng ghi HIS, ký và lĩnh dược thật tiếp tục bị khóa.
+Đã chạy probe chỉ-đọc trên máy Windows có eHospital 4.0.1.0. Kết quả lượt mới nhất: 2 tiến trình, 4 cửa sổ WinForms (311×102, 1936×1048, 476×369, 1936×1048); UIA thấy 2 cửa sổ chính cùng kích thước. Nhãn tab bệnh án và radio toa thuốc cùng xuất hiện trong cây control nên screen classifier từ chối phân loại. Có nhiều phiên/cửa sổ, chưa xác minh duy nhất phiên để tự động hóa. Chưa điều hướng, nhập, lưu, ký, in hoặc đọc dữ liệu bệnh nhân. Chức năng ghi HIS, ký và lĩnh dược thật tiếp tục bị khóa.
+
+Probe chỉ đọc loại control, nhãn tĩnh nằm trong allowlist và rect tương đối. Nó không đọc title cửa sổ, nội dung Edit/Text/DataItem, ảnh, DB, mật khẩu hay chứng thư. Báo cáo đã tạo cục bộ ngoài repo tại `%LOCALAPPDATA%\HISAutoAssistant\ehospital-uia-safe.json` và `winforms-metadata-only.json`.
 
 ## Chuẩn bị máy Windows được phép khảo sát
 1. Sử dụng một tài khoản và máy có quyền khảo sát kỹ thuật được bệnh viện phê duyệt.
@@ -12,11 +14,11 @@ Mã nguồn trên nhánh này đã có công cụ kiểm tra cấu trúc điều
 python -m his_auto.live_probe
 ```
 
-4. Báo cáo nằm tại `%LOCALAPPDATA%\HISAutoAssistant\ehospital-uia-safe.json`. Không lưu vào thư mục GitHub. Công cụ chỉ ghi **nhãn giao diện tĩnh có trong danh sách cho phép**, loại điều khiển và hình học tương đối của chúng. Không thu thập title, text ô nhập, screenshot, database, mật khẩu, chứng thư ký, hay hồ sơ bệnh nhân.
+4. Báo cáo nằm tại `%LOCALAPPDATA%\HISAutoAssistant\ehospital-uia-safe.json`; Win32 counts/geometry tại `winforms-metadata-only.json`. Không lưu vào thư mục GitHub. Công cụ chỉ ghi **nhãn giao diện tĩnh có trong danh sách cho phép**, loại điều khiển và hình học tương đối. Không truy vấn text của Edit/Text/grid; không thu thập title, screenshot, database, mật khẩu, chứng thư ký hay hồ sơ bệnh nhân.
 5. Bộ phận CNTT kiểm tra báo cáo trước khi chia sẻ. Nếu công cụ không nhận diện được nhãn, chưa đủ cơ sở kết luận có thể tự động hóa an toàn.
 
 ## Roadmap để tích hợp thật
-- Cung cấp quyền truy cập tới môi trường HIS **kiểm thử** do bệnh viện quản lý, dùng dữ liệu giả.
+- CNTT xác định một tiến trình/cửa sổ HIS duy nhất và cung cấp môi trường HIS **kiểm thử** do bệnh viện quản lý, dùng dữ liệu giả.
 - Chạy công cụ trên các màn hình `BA Nội trú - Ngoại Trú`, `F5`, `F7`, `Phiếu lĩnh dược`, `Crystal Reports`; lưu báo cáo theo từng màn hình khi không có dữ liệu nhạy cảm.
 - Dựa vào kết quả, xây bộ `LiveAdapter` với bộ ánh xạ giao diện được xác minh. Không nhấp theo tọa độ đoán mò.
 - Kiểm tra bệnh nhân/đợt/khoa qua phương pháp được cấp phép; nếu không xác minh được thì dừng.

@@ -138,7 +138,7 @@ class AssistantWindow(QMainWindow):
         self.actions = {}
         for label, fn in (("1. Chuẩn bị và xem trước", self.prepare),
                           ("2. Duyệt nội dung", self.approve),
-                          ("3. BẮT ĐẦU TỰ ĐỘNG", self.start),
+                          ("3. BẮT ĐẦU MÔ PHỎNG", self.start),
                           ("Tạm dừng", self.workflow.pause),
                           ("Tiếp tục", self.start),
                           ("Khôi phục sau lỗi đã kiểm tra", self.recover_workflow),
@@ -147,7 +147,7 @@ class AssistantWindow(QMainWindow):
             button.clicked.connect(lambda checked=False, f=fn: self.run(f))
             controls.addWidget(button)
             self.actions[label] = button
-        self.actions["3. BẮT ĐẦU TỰ ĐỘNG"].setStyleSheet("background:#147d64;color:white;font-weight:bold;padding:14px")
+        self.actions["3. BẮT ĐẦU MÔ PHỎNG"].setStyleSheet("background:#147d64;color:white;font-weight:bold;padding:14px")
         self.actions["DỪNG KHẨN CẤP"].setStyleSheet("background:#b52c38;color:white;font-weight:bold")
         box.addLayout(controls)
         log_box = QGroupBox("Nhật ký workflow đã ghi nhận")
@@ -396,7 +396,7 @@ class AssistantWindow(QMainWindow):
         if hasattr(self, "timeline"):
             self.refresh_dashboard()
         if hasattr(self,"actions"):
-            self.actions["3. BẮT ĐẦU TỰ ĐỘNG"].setEnabled(self.workflow.state == State.APPROVED)
+            self.actions["3. BẮT ĐẦU MÔ PHỎNG"].setEnabled(self.workflow.state == State.APPROVED)
             self.actions["Tiếp tục"].setEnabled(self.workflow.state == State.PAUSED)
             self.actions["Khôi phục sau lỗi đã kiểm tra"].setEnabled(self.workflow.state == State.FAILED)
             self.actions["Tạm dừng"].setEnabled(self.workflow.state == State.RUNNING)
@@ -555,9 +555,23 @@ class AssistantWindow(QMainWindow):
         QMessageBox.information(self,"Ngữ cảnh mô phỏng",repr(self.adapter.context()))
 
     def detect_live(self):
-        from .recognition import detect_his
-        found = detect_his()
-        QMessageBox.information(self,"Phát hiện chỉ đọc",f"Tìm thấy {len(found)} cửa sổ eHospital. Chức năng ghi thật đang khóa.")
+        from .recognition import LiveAdapter
+        report = LiveAdapter().inspect()
+        lines = [
+            f"Tiến trình eHospital: {report['processes_detected']}",
+            f"Cửa sổ được nhận diện: {report['windows_detected']}",
+        ]
+        for index, window in enumerate(report["windows"], 1):
+            size = window.get("window_size", {})
+            hint = window.get("screen_hint") or "chưa đủ mốc tĩnh để phân loại"
+            count = sum(window.get("controls_by_type", {}).values())
+            lines.append(f"Cửa sổ {index}: {size.get('width', 0)}×{size.get('height', 0)}, {count} điều khiển, {hint}")
+        lines.append("Chỉ đọc metadata UI. Chưa xác minh bệnh nhân, đợt, khoa hoặc quyền HIS; mọi thao tác ghi, ký và in vẫn khóa.")
+        message = "\n".join(lines)
+        if report["processes_detected"] != 1:
+            QMessageBox.warning(self, "eHospital chưa xác định duy nhất", message)
+        else:
+            QMessageBox.information(self, "Khảo sát eHospital chỉ đọc", message)
 
     def open_simulator(self):
         from .simulator_ui import SimulatorWindow

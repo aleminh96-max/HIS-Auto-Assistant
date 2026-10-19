@@ -32,11 +32,11 @@ python -m pytest -v --junitxml=test-results.xml
 - Dịch vụ tùy chọn; đối chiếu y lệnh, tổng hợp và phiếu lĩnh, chặn số lượng không khớp trước khi chuẩn bị hồ sơ.
 - Workflow có duyệt nội dung, tạm dừng, tiếp tục, Esc dừng khẩn cấp; kiểm tra ngữ cảnh trước/sau từng bước; lưu dấu vết trước thao tác và không tự thử lại kết quả chưa rõ.
 - Duyệt chữ ký gắn đúng tài liệu/nội dung; chỉ gửi ký một lần; mô phỏng lệnh in và chống gửi trùng.
-- Phát hiện tiến trình eHospital ở chế độ chỉ đọc. Thư viện nhận diện UIA, ảnh và hồ sơ tọa độ tương đối có kiểm tra DPI/thiết bị.
+- Khảo sát eHospital bằng UIA/Win32 ở chế độ chỉ đọc: chỉ đếm loại control, nhãn tĩnh trong allowlist và hình học tương đối; không đọc giá trị trường hoặc tiêu đề cửa sổ. Probe đã nhận diện được gợi ý màn hình bệnh án trên máy khảo sát.
 
 ## Giới hạn cần đọc
 
-Workflow hiện gọi **backend simulator** (lưu dấu vân tay trạng thái vào SQLite), không điều khiển eHospital. Tiến trình eHospital 4.0.1.0 được phát hiện trên máy phát triển, nhưng chưa kiểm tra cửa sổ hoặc dữ liệu và chưa xác minh tương thích. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
+Workflow hiện gọi **backend simulator** (lưu dấu vân tay trạng thái vào SQLite); LiveAdapter mới chỉ khảo sát metadata, chưa điều khiển nghiệp vụ eHospital. Probe đọc thấy 2 tiến trình, 4 cửa sổ Win32 và 2 cửa sổ UIA cùng kích thước; nhãn giao diện chưa phân biệt được màn hình/phiên hiện tại. Vì vậy chưa chọn được duy nhất phiên HIS để tự động hóa. Cửa sổ simulator hiển thị trạng thái backend và cho phép gây lỗi. Các thẻ báo cáo, lĩnh dược và bảng thuốc là khung mô phỏng; chưa tái tạo toàn bộ hộp thoại HIS. Chữ ký không phải chữ ký điện tử thật; lệnh in không gửi ra máy in; chưa có PDF trình duyệt/SAP Crystal Reports thật. Chưa có adapter ghi HIS, wizard hiệu chỉnh hoàn chỉnh, cài đặt Windows, hay nghiệm thu đa máy. Xem [ma trận kiểm chứng](docs/VERIFICATION.md) và [hướng dẫn tiếng Việt](docs/USER_GUIDE.vi.md).
 
 ## Dữ liệu
 
