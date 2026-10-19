@@ -9,7 +9,8 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QFormLayout, QLabel, QLineEdit, QTextEdit, QPushButton, QComboBox, QCheckBox,
     QDateTimeEdit, QTabWidget, QMessageBox, QFileDialog, QScrollArea, QSpinBox,
-    QTableWidget, QTableWidgetItem)
+    QTableWidget, QTableWidgetItem, QProgressBar, QTreeWidget, QTreeWidgetItem,
+    QGroupBox)
 from .domain import ClinicalTemplate, Group, Vitals, Medication, SafetyError, prepare_dossier, reconcile_quantities
 from .storage import Store
 from .workflow import Workflow, State
@@ -25,7 +26,7 @@ class AssistantWindow(QMainWindow):
     def __init__(self, store=None):
         super().__init__()
         self.setWindowTitle("HIS Auto Assistant 0.1 — BẢN MÔ PHỎNG")
-        self.resize(1120, 820)
+        self.resize(1220, 820)
         base = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "HISAutoAssistant"
         self.store = store or Store(base / "assistant.sqlite3")
         self.adapter = SimulatorAdapter(self.store)
@@ -35,6 +36,7 @@ class AssistantWindow(QMainWindow):
         self.dossier = None
         self.document = None
         self.sim_window = None
+        self.workflow_started_at = None
         root = QWidget()
         self.setCentralWidget(root)
         layout = QVBoxLayout(root)
@@ -51,17 +53,7 @@ class AssistantWindow(QMainWindow):
         self.make_preview()
         self.make_settings()
         self.make_orders()
-        row = QHBoxLayout()
-        self.actions = {}
-        for text, fn in (("Chuẩn bị hồ sơ", self.prepare), ("Bắt đầu", self.start),
-                         ("Tạm dừng", self.workflow.pause), ("Tiếp tục", self.start),
-                         ("DỪNG KHẨN CẤP", self.workflow.stop)):
-            button = QPushButton(text)
-            button.clicked.connect(lambda checked=False, f=fn: self.run(f))
-            row.addWidget(button)
-            self.actions[text] = button
-        self.actions["DỪNG KHẨN CẤP"].setStyleSheet("background:#b52c38;color:white;font-weight:bold")
-        layout.addLayout(row)
+        self.actions = getattr(self, "actions", {})
         QShortcut(QKeySequence("Esc"), self, activated=self.workflow.stop)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.advance)
@@ -90,8 +82,13 @@ class AssistantWindow(QMainWindow):
         return b
 
     def make_home(self):
-        box = self.page("Trang chủ")
-        box.addWidget(QLabel("Bệnh nhân giả: DEMO-0001 | Đợt: DEMO-DOT-01\nKhoa Điều trị Nội trú ban ngày\nMọi thuốc, dịch vụ, chữ ký và lệnh in ở đây chỉ là mô phỏng."))
+        box = self.page("Tổng quan")
+        patient = QGroupBox("Bệnh nhân và ngữ cảnh HIS")
+        patient_layout = QVBoxLayout(patient)
+        self.patient_summary = QLabel()
+        self.patient_summary.setWordWrap(True)
+        patient_layout.addWidget(self.patient_summary)
+        box.addWidget(patient)
         self.group = QComboBox()
         self.group.addItems(list(Group))
         self.group.setCurrentText(Group.LATENT)
@@ -108,6 +105,56 @@ class AssistantWindow(QMainWindow):
         live = QPushButton("Tự động hóa eHospital thật — CHƯA NGHIỆM THU")
         live.setEnabled(False)
         box.addWidget(live)
+        progress_box = QGroupBox("Tiến trình quy trình")
+        progress_layout = QVBoxLayout(progress_box)
+        self.progress_label = QLabel("Chưa chuẩn bị hồ sơ mô phỏng")
+        progress_layout.addWidget(self.progress_label)
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 12)
+        self.progress.setValue(0)
+        self.progress.setFormat("%p% — %v/12 mục đã xác minh")
+        progress_layout.addWidget(self.progress)
+        self.progress_detail = QLabel("Thời gian: 00:00 | Thời gian còn lại: chưa đủ dữ liệu")
+        progress_layout.addWidget(self.progress_detail)
+        box.addWidget(progress_box)
+        preview_box = QGroupBox("Xem trước hồ sơ trước khi duyệt")
+        preview_layout = QVBoxLayout(preview_box)
+        self.inline_preview = QTextEdit()
+        self.inline_preview.setReadOnly(True)
+        self.inline_preview.setPlaceholderText("Chuẩn bị hồ sơ để xem bản xem trước tại đây.")
+        self.inline_preview.setMaximumHeight(130)
+        preview_layout.addWidget(self.inline_preview)
+        box.addWidget(preview_box)
+        self.timeline = QTreeWidget()
+        self.timeline.setColumnCount(3)
+        self.timeline.setHeaderLabels(["Công việc", "Trạng thái", "Chi tiết xác minh"])
+        self.timeline.setRootIsDecorated(False)
+        self.timeline.setAlternatingRowColors(True)
+        self.timeline.setMinimumHeight(260)
+        box.addWidget(self.timeline)
+        self._timeline_items = []
+        controls = QHBoxLayout()
+        self.actions = {}
+        for label, fn in (("1. Chuẩn bị và xem trước", self.prepare),
+                          ("2. Duyệt nội dung", self.approve),
+                          ("3. BẮT ĐẦU TỰ ĐỘNG", self.start),
+                          ("Tạm dừng", self.workflow.pause),
+                          ("Tiếp tục", self.start),
+                          ("DỪNG KHẨN CẤP", self.workflow.stop)):
+            button = QPushButton(label)
+            button.clicked.connect(lambda checked=False, f=fn: self.run(f))
+            controls.addWidget(button)
+            self.actions[label] = button
+        self.actions["3. BẮT ĐẦU TỰ ĐỘNG"].setStyleSheet("background:#147d64;color:white;font-weight:bold;padding:14px")
+        self.actions["DỪNG KHẨN CẤP"].setStyleSheet("background:#b52c38;color:white;font-weight:bold")
+        box.addLayout(controls)
+        log_box = QGroupBox("Nhật ký workflow đã ghi nhận")
+        log_layout = QVBoxLayout(log_box)
+        self.live_log = QTextEdit()
+        self.live_log.setReadOnly(True)
+        self.live_log.setMaximumHeight(130)
+        log_layout.addWidget(self.live_log)
+        box.addWidget(log_box)
         box.addStretch()
 
     def make_clinical(self):
@@ -290,8 +337,9 @@ class AssistantWindow(QMainWindow):
         self.dossier = self.current_dossier()
         self.workflow.prepare(self.dossier)
         self.document = Document(self.dossier.context, "DEMO-" + self.dossier.sheets[0].at.isoformat(), "Ba tờ điều trị mô phỏng", dossier_text(self.dossier))
-        self.preview.setPlainText("DỮ LIỆU GIẢ — KHÔNG PHẢI Y LỆNH\n" + self.document.content)
-        self.tabs.setCurrentIndex(3)
+        preview_text = "DỮ LIỆU GIẢ — KHÔNG PHẢI Y LỆNH\n" + self.document.content
+        self.preview.setPlainText(preview_text)
+        self.inline_preview.setPlainText(preview_text)
 
     def ensure_unchanged(self):
         if not self.dossier or self.current_dossier().fingerprint != self.dossier.fingerprint:
@@ -303,6 +351,8 @@ class AssistantWindow(QMainWindow):
 
     def start(self):
         self.ensure_unchanged()
+        if self.workflow.state != State.PAUSED:
+            self.workflow_started_at = datetime.now().astimezone()
         self.workflow.start()
 
     def advance(self):
@@ -318,11 +368,104 @@ class AssistantWindow(QMainWindow):
             self.sim_window.refresh()
 
     def update_status(self):
-        self.status.setText(f"MÔ PHỎNG | {self.adapter.context().record_id} | {self.workflow.state} | {self.workflow.index}/5 bước | {self.workflow.error}")
+        self.status.setText(f"CHẾ ĐỘ MÔ PHỎNG — không kết nối HIS thật | {self.workflow.state} | {self.workflow.error}")
+        if hasattr(self, "timeline"):
+            self.refresh_dashboard()
         if hasattr(self,"actions"):
-            self.actions["Bắt đầu"].setEnabled(self.workflow.state == State.APPROVED)
+            self.actions["3. BẮT ĐẦU TỰ ĐỘNG"].setEnabled(self.workflow.state == State.APPROVED)
             self.actions["Tiếp tục"].setEnabled(self.workflow.state == State.PAUSED)
             self.actions["Tạm dừng"].setEnabled(self.workflow.state == State.RUNNING)
+
+    def refresh_dashboard(self):
+        context = self.adapter.context()
+        prepared = self.workflow.state != State.NOT_STARTED
+        context_valid = False
+        if prepared and self.dossier:
+            try:
+                context.validate()
+                context_valid = (context.identity == self.dossier.context.identity and
+                                 "write" in context.permissions)
+            except SafetyError:
+                context_valid = False
+        self.patient_summary.setText(
+            f"Kết nối: HIS Simulator (dữ liệu giả) | Khoa: {context.department} — "
+            f"{'đúng' if context.department == 'Khoa Điều trị Nội trú ban ngày' else 'không đúng'}\n"
+            f"Bệnh nhân: {context.record_id} | Đợt điều trị: {context.episode_id}\n"
+            f"Nhóm: {self.group.currentText()} | ICD: {self.fields['icd'].text() if hasattr(self, 'fields') else '—'} | "
+            f"Lần tiêm: {self.injection.currentText()}"
+        )
+        # Only simulator operations with a persisted verification count as complete.
+        # Unsupported workflow stages stay visible and never increase the percentage.
+        specs = [
+            ("Kiểm tra bệnh nhân và khoa", None, "Ngữ cảnh tổng hợp của HIS Simulator"),
+            ("Nhập chẩn đoán và tổng kết bệnh án", "diagnosis", "Lưu và đối chiếu snapshot simulator"),
+            ("Chuẩn bị, xác nhận chỉ định cận lâm sàng", "services", "Lưu và đối chiếu danh sách dịch vụ giả"),
+            ("Ký số các chỉ định đã phê duyệt", None, "Chưa có luồng ký chỉ định riêng trong simulator"),
+            ("In phiếu chỉ định", None, "Chưa có luồng in phiếu chỉ định"),
+            ("Tạo tờ điều trị thứ nhất — Toa cấp thuốc", "sheet1", "Lưu và đối chiếu tờ 1 giả"),
+            ("Tạo tờ điều trị thứ hai — Toa mua ngoài", "sheet2", "Lưu và đối chiếu tờ 2 giả"),
+            ("In toa mua ngoài", None, "Chưa nối in toa vào workflow"),
+            ("Tạo tờ điều trị thứ ba — không thuốc, +30 phút", "sheet3", "Lưu và đối chiếu tờ 3 giả"),
+            ("In phiếu theo dõi điều trị", None, "Chưa triển khai trong simulator"),
+            ("In phiếu công khai thuốc", None, "Chưa triển khai trong simulator"),
+            ("Lập và in phiếu lĩnh dược", None, "Chưa triển khai trong simulator"),
+        ]
+        core_index = {"diagnosis": 0, "services": 1, "sheet1": 2, "sheet2": 3, "sheet3": 4}
+        verified_count = 1 if prepared and context_valid else 0
+        rows = []
+        for number, (title, core, detail) in enumerate(specs, 1):
+            state = "CHƯA CHUẨN BỊ"
+            if core is None:
+                if number == 1 and prepared and context_valid:
+                    state = "ĐÃ XÁC MINH"
+                elif number == 1 and prepared:
+                    state, detail = "LỖI / CẦN KIỂM TRA", "Ngữ cảnh hiện tại không khớp hồ sơ đã chuẩn bị"
+                elif number > 1:
+                    state = "CHƯA HỖ TRỢ"
+            elif prepared:
+                pos = core_index[core]
+                if self.workflow.index > pos:
+                    state = "ĐÃ XÁC MINH"
+                    verified_count += 1
+                elif self.workflow.state == State.RUNNING and self.workflow.index == pos:
+                    state = "ĐANG THỰC HIỆN"
+                elif self.workflow.state == State.FAILED and self.workflow.index == pos:
+                    state, detail = "LỖI / CẦN KIỂM TRA", self.workflow.error or detail
+                elif self.workflow.state == State.PAUSED and self.workflow.index == pos:
+                    state = "TẠM DỪNG"
+                else:
+                    state = "CHỜ THỰC HIỆN"
+            rows.append((number, title, state, detail))
+        if not self._timeline_items:
+            for _ in rows:
+                item = QTreeWidgetItem(["", "", ""])
+                self.timeline.addTopLevelItem(item)
+                self._timeline_items.append(item)
+        for item, (number, title, state, detail) in zip(self._timeline_items, rows):
+            item.setText(0, f"{number}. {title}")
+            item.setText(1, state)
+            item.setText(2, detail)
+        self.timeline.resizeColumnToContents(0)
+        self.timeline.resizeColumnToContents(1)
+        self.progress.setValue(verified_count)
+        self.progress_label.setText(f"Đã xác minh {verified_count}/12 mục — {self.workflow.state}")
+        if self.workflow.state == State.RUNNING and self.workflow.index < 5:
+            active = f"Đang thực hiện: {specs[self.workflow.index + 1][0]}"
+        elif self.workflow.state == State.FAILED:
+            active = f"Đã dừng do lỗi: {self.workflow.error}"
+        elif self.workflow.state == State.COMPLETED:
+            active = "5 thao tác mô phỏng đã xác minh; các mục chưa hỗ trợ vẫn còn."
+        else:
+            active = f"Trạng thái hiện tại: {self.workflow.state}"
+        elapsed = "00:00"
+        if self.workflow_started_at:
+            seconds = max(0, int((datetime.now().astimezone() - self.workflow_started_at).total_seconds()))
+            elapsed = f"{seconds // 60:02d}:{seconds % 60:02d}"
+        self.progress_detail.setText(f"{active} | Thời gian: {elapsed} | Còn lại: chưa đủ dữ liệu dự báo")
+        events = self.store.db.execute("SELECT at,event,status FROM audit ORDER BY id DESC LIMIT 30").fetchall()
+        log_text = "\n".join(" | ".join(map(str, row)) for row in reversed(events)) or "Chưa có sự kiện workflow được ghi nhận."
+        if self.live_log.toPlainText() != log_text:
+            self.live_log.setPlainText(log_text)
 
     def sign(self):
         self.ensure_unchanged()

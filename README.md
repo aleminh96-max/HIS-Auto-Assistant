@@ -22,6 +22,8 @@ python -m pytest -v --junitxml=test-results.xml
 
 ## Chức năng bản thử
 
+- Trang tổng quan một màn hình hiển thị ngữ cảnh mô phỏng, tiến trình, 12 mục workflow và nhật ký audit. Chỉ các thao tác simulator đã đối chiếu mới được tính hoàn thành; mục chưa triển khai luôn hiển thị riêng và tiến trình không được báo 100%.
+
 - Mẫu bệnh án: tạo, sửa, nhân bản, mặc định, lịch sử phiên bản, nhập/xuất JSON và sao lưu SQLite.
 - Nhập lâm sàng, ICD thủ công cho nhóm sớm; A53.0 cho nhóm tiềm ẩn; xác nhận lịch sử mũi 1–3.
 - Dấu hiệu sinh tồn có thời điểm gốc, kiểm tra định dạng và yêu cầu rà soát số đo bất thường.

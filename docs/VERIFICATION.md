@@ -4,6 +4,7 @@ Bản 0.1 là bản thử mô phỏng. Kết quả tự động cụ thể trong
 
 | Phạm vi | Bằng chứng / trạng thái |
 |---|---|
+| Dashboard 12 mục và phần trăm theo các thao tác simulator đã xác minh; ngữ cảnh đổi làm mất xác minh bước 1; không báo 100% khi còn bước chưa hỗ trợ | pytest-qt `test_dashboard_twelve_items_never_claims_unverified_completion` trên Windows, Python 3.13 |
 | ICD, lịch sử mũi 1–3, số đo, ba tờ qua ngày, không thuốc tờ 3 | pytest domain |
 | Tách toa, chống trùng, sai lệch số lượng | pytest domain, GUI |
 | CRUD mẫu, phiên bản, nhập/xuất, sao lưu | pytest storage |
