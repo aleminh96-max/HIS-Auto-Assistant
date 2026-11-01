@@ -1,5 +1,5 @@
 """No raw HIS field values may reach the exported UIA inventory."""
-from his_auto.live_probe import safe_caption, safe_control_type, safe_geometry
+from his_auto.live_probe import read_safe_static_caption, safe_caption, safe_control_type, safe_geometry
 
 
 class Rectangle:
@@ -19,6 +19,42 @@ def test_only_allowlisted_static_captions():
 def test_type_never_passes_arbitrary_text():
     assert safe_control_type("Button") == "Button"
     assert safe_control_type("Hospital patient Nguyễn Văn A") == "Other"
+
+
+class Control:
+    def __init__(self, control_type, value):
+        self.element_info = type("Info", (), {"control_type": control_type})()
+        self.value = value
+        self.read_count = 0
+
+    def window_text(self):
+        self.read_count += 1
+        return self.value
+
+
+def test_patient_value_control_types_are_never_read():
+    for control_type in ("Edit", "Text", "DataItem", "ListItem", "Table"):
+        control = Control(control_type, "Patient data must not be read")
+        assert read_safe_static_caption(control) is None
+        assert control.read_count == 0
+
+
+def test_only_allowlisted_caption_on_static_control_is_returned():
+    control = Control("Button", "Lưu")
+    assert read_safe_static_caption(control) == "Lưu"
+    assert control.read_count == 1
+
+
+def test_live_adapter_is_read_only():
+    import pytest
+    from his_auto.domain import SafetyError
+    from his_auto.recognition import LiveAdapter
+
+    adapter = LiveAdapter()
+    assert adapter.write_enabled is False
+    assert adapter.verify("any operation") is False
+    with pytest.raises(SafetyError, match="chỉ đọc"):
+        adapter.execute("save")
 
 
 def test_geometry_is_relative_to_own_window():

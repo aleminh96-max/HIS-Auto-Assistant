@@ -1,6 +1,7 @@
 """Pure read-only screen classification tests use no patient identifiers."""
 from his_auto.live_screen_catalog import (
-    SCREEN_HINTS, classify_static_screen, is_reference_only, title_module,
+    SCREEN_HINTS, classify_static_labels, classify_static_screen,
+    is_reference_only, title_module,
 )
 
 
@@ -54,3 +55,18 @@ def test_unverified_anchors_never_classify_screen():
         ["Thông tin nhạy cảm", "Dữ liệu bệnh nhân"],
     ) is None
     assert title_module("BA Nội trú - Ngoại Trú") is None
+
+
+def test_static_labels_identify_navigation_hint_without_window_title():
+    assert classify_static_labels(
+        "eHospital.exe", ["Chẩn đoán", "Tổng kết Bệnh án"]
+    ) == "inpatient_record"
+    assert classify_static_labels(
+        "unknown.exe", ["Chẩn đoán", "Tổng kết Bệnh án"]
+    ) is None
+    assert classify_static_labels(
+        "eHospital.exe", ["Chẩn đoán"]
+    ) is None
+    assert classify_static_labels(
+        "eHospital.exe", ["Chẩn đoán", "Tổng kết Bệnh án", "Mua ngoài", "Cấp thuốc"]
+    ) is None

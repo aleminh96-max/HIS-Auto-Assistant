@@ -15,9 +15,12 @@ Bản 0.1 là bản thử mô phỏng. Kết quả tự động cụ thể trong
 | Máy in không tồn tại, chưa ký, chưa duyệt, lệnh in trùng | pytest documents (mô phỏng) |
 | GUI nhập → chuẩn bị → duyệt → ba tờ; sửa sau duyệt | pytest-qt offscreen trên Windows |
 | Nhận diện ảnh duy nhất / mơ hồ, tọa độ tương đối | pytest với ảnh tổng hợp |
-| eHospital UIA thực tế / ánh xạ trường / OCR | NOT VERIFIED |
-| eHospital.exe trên máy thử nghiệm | Phát hiện tiến trình; tệp phiên bản Product 4.0.0.0 / File 4.0.1.0. Chưa mở UI, chưa đọc hồ sơ và chưa kiểm chứng tương thích. |
-| Thao tác desktop ngoài tiến trình qua UIA | NOT VERIFIED |
+| Probe UIA metadata eHospital | PASS READ-ONLY — lần chạy 2026-10-19 thấy 1 tiến trình, 1 cửa sổ 1936×1048, classifier gợi ý `inpatient_record` từ nhãn tĩnh allowlist. Không đọc title hoặc giá trị trường; không xác minh khoa, bệnh nhân, đợt điều trị hay quyền. |
+| Probe Win32 metadata eHospital | PASS READ-ONLY — baseline trước đó: 2 tiến trình, 4 cửa sổ (311×102, 1936×1048, 476×369, 1936×1048); chưa chạy lại Win32 probe trong lần kiểm tra 2026-10-19. |
+| eHospital trên máy khảo sát | FPT Information System GMC; Product 4.0.0.0 / File 4.0.1.0, build .NET 4.0 ngày 27-04-2016. Người vận hành xác nhận phiên đang mở là sản xuất; không có thao tác nghiệp vụ. |
+| API/SDK chính thức cho bản cài đặt này | NOT VERIFIED — FPT công bố FPT.eHospital 2.0+ tích hợp qua RESTful API, nhưng chưa có edition/module, API contract, endpoint test hoặc cơ chế xác thực của cài đặt bệnh viện. FileVersion 4.0.1.0 không đủ để xác nhận API này đang khả dụng. |
+| Ánh xạ ID/Name UIA của trường nghiệp vụ | NOT VERIFIED — probe không đọc giá trị hoặc nhãn ngoài allowlist; chưa đủ căn cứ để điền trường. |
+| Điều hướng desktop ngoài tiến trình qua UIA | NOT VERIFIED — chưa điều hướng F5/F7 hoặc popup. |
 | Windows 1366×768, 1920×1080, 2560×1440 và DPI 100/125/150% | NOT VERIFIED trên thiết bị thật |
 | Bảng thuốc HIS cuộn ngang, checkbox đã chọn, F5/F7 ngoài tiến trình | NOT VERIFIED |
 | PDF browser, Crystal Reports BCLS_273_EMR / BCLS_101_EMR | NOT IMPLEMENTED |
@@ -29,8 +32,8 @@ Bản 0.1 là bản thử mô phỏng. Kết quả tự động cụ thể trong
 
 ## Cửa kiểm soát tích hợp thật
 
-1. Đơn vị quản lý cấp quyền khảo sát và môi trường test.
-2. Lấy cây UIA và ảnh đã loại thông tin thật; xây adapter theo phiên bản HIS.
+1. CNTT/FPT xác nhận edition/module API của bản cài đặt; cung cấp OpenAPI/đặc tả, endpoint test, cơ chế xác thực/quyền tối thiểu và dữ liệu giả. Phiên sản xuất hiện tại không dùng cho điều hướng/thao tác.
+2. Trong môi trường đó, mở lần lượt các màn hình mục tiêu; chỉ thu ID/type/state/control label đã kiểm duyệt, tuyệt đối không lưu giá trị bệnh nhân.
 3. Xác minh danh tính trên từng cửa sổ chính, F5, F7, ký, PDF, báo cáo và lĩnh dược. Không dựa riêng tiêu đề cửa sổ.
 4. Thử trên dữ liệu giả: lưu/đọc lại, timeout, hủy, crash và tiếp tục. Lưu bất định không tự retry.
 5. Kiểm thử tất cả thiết bị/DPI/máy in và các lỗi trong master prompt; ghi PASS/FAIL/NOT VERIFIED riêng.
