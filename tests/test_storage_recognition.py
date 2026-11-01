@@ -41,4 +41,6 @@ def test_vision_match_and_ambiguity():
 
 
 def test_live_write_is_locked():
-    with pytest.raises(SafetyError): LiveAdapter()
+    live = LiveAdapter()
+    assert live.write_enabled is False
+    with pytest.raises(SafetyError): live.execute("save")
